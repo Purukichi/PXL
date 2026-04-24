@@ -1,0 +1,880 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PXL</title>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+/* ── Light theme (default) ── */
+:root {
+  --bg:      #f0efe9;
+  --surface: #faf9f7;
+  --border:  #dedad2;
+  --border2: #e8e6e0;
+  --t1:      #1e1d1b;
+  --t2:      #5c5a55;
+  --t3:      #a09e99;
+  --r:       10px;
+  --rs:      7px;
+}
+/* ── Dark theme ── */
+.dark {
+  --bg:      #181715;
+  --surface: #222120;
+  --border:  #333130;
+  --border2: #2a2928;
+  --t1:      #e8e6df;
+  --t2:      #8c8a84;
+  --t3:      #55534f;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  background: var(--bg);
+  color: var(--t1);
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+  transition: background 0.2s, color 0.2s;
+}
+button { font-family: inherit; cursor: pointer; }
+
+/* ── Top bar ── */
+.topbar {
+  position: sticky; top: 0; z-index: 100;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  padding: 0 24px;
+  display: flex; align-items: center; height: 46px; gap: 8px;
+}
+.logo { font-size: 14px; font-weight: 800; letter-spacing: -0.04em; color: var(--t1); flex: 1; }
+
+/* ── Page ── */
+.page { max-width: 1100px; margin: 0 auto; padding: 20px 20px 56px; display: flex; flex-direction: column; gap: 14px; }
+
+/* ── Card ── */
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r); }
+.card-inner { padding: 16px 18px; }
+.card-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+
+/* ── Preview ── */
+.preview-area {
+  position: relative; border-radius: var(--rs);
+  background: var(--bg);
+  display: flex; align-items: center; justify-content: center;
+  min-height: 320px; padding: 44px 44px 20px 20px;
+  overflow: hidden;
+}
+.pv-wrap {
+  position: relative; flex-shrink: 0;
+  transition: width 0.38s cubic-bezier(0.34,1.28,0.64,1),
+              height 0.38s cubic-bezier(0.34,1.28,0.64,1);
+}
+.pv-canvas {
+  position: absolute; inset: 0; overflow: hidden; border-radius: 1px;
+}
+.pv-canvas.has-img { cursor: grab; }
+.pv-canvas.has-img.panning { cursor: grabbing; }
+.pv-img {
+  position: absolute;
+  transform-origin: center center;
+  user-select: none; pointer-events: none;
+  top: 50%; left: 50%;
+}
+.pv-frame {
+  position: absolute; inset: 0;
+  border: 1.5px solid var(--t1); border-radius: 1px;
+  pointer-events: none; z-index: 3;
+}
+/* safe area SVG */
+.pv-safe {
+  position: absolute; inset: 0; pointer-events: none; z-index: 4;
+}
+
+/* drop */
+.drop-hint {
+  position: absolute; inset: 0;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 6px; color: var(--t3); pointer-events: none;
+}
+.drop-hint span { font-size: 10px; font-weight: 600; opacity: 0.55; }
+.drop-overlay {
+  position: absolute; inset: 0; background: rgba(0,0,0,0.06);
+  border: 2px dashed var(--t2); border-radius: var(--rs);
+  display: flex; align-items: center; justify-content: center; z-index: 10;
+}
+
+/* dimension annotations */
+.ann-h {
+  position: absolute; left: 0; right: 0; top: -22px;
+  display: flex; align-items: center; pointer-events: none;
+}
+.ann-v {
+  position: absolute; top: 0; bottom: 0; right: -26px;
+  display: flex; flex-direction: column; align-items: center; pointer-events: none;
+}
+.ann-line { background: var(--t3); }
+.ann-h .ann-line { flex: 1; height: 1px; position: relative; }
+.ann-v .ann-line { flex: 1; width: 1px; position: relative; }
+.ann-cap { font-size: 7px; color: var(--t3); line-height: 1; }
+.ann-val-h {
+  position: absolute; left: 50%; top: -8px; transform: translateX(-50%);
+  font-size: 10px; font-weight: 700; color: var(--t2); white-space: nowrap;
+  background: var(--bg); padding: 0 4px; font-variant-numeric: tabular-nums;
+}
+.ann-val-v {
+  position: absolute; top: 50%; left: 12px;
+  transform: translateY(-50%) rotate(90deg); transform-origin: center;
+  font-size: 10px; font-weight: 700; color: var(--t2); white-space: nowrap;
+  background: var(--bg); padding: 0 3px; font-variant-numeric: tabular-nums;
+}
+.pv-badge-r {
+  position: absolute; top: 8px; left: 50%; transform: translateX(-50%);
+  background: var(--t1); color: var(--surface);
+  font-size: 10px; font-weight: 700; letter-spacing: 0.02em;
+  padding: 3px 9px; border-radius: 99px; white-space: nowrap; z-index: 5;
+  pointer-events: none;
+}
+.pv-badge-mp {
+  position: absolute; top: 8px; right: 8px;
+  background: var(--surface); border: 1px solid var(--border);
+  color: var(--t3); font-size: 10px; font-weight: 600;
+  padding: 2px 8px; border-radius: 99px; white-space: nowrap; z-index: 5;
+  pointer-events: none;
+}
+/* zoom hint */
+.zoom-hint {
+  position: absolute; bottom: 8px; left: 8px;
+  font-size: 9px; font-weight: 600; color: var(--t3);
+  pointer-events: none; z-index: 5;
+  opacity: 0; transition: opacity 0.2s;
+}
+.pv-canvas.has-img:hover ~ .zoom-hint,
+.pv-canvas.has-img.panning ~ .zoom-hint { opacity: 1; }
+
+/* zoom slider row */
+.zoom-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 0 0;
+}
+.zoom-label { font-size: 10px; font-weight: 700; color: var(--t3); width: 36px; text-align: right; font-variant-numeric: tabular-nums; }
+.zoom-slider {
+  flex: 1; -webkit-appearance: none; appearance: none;
+  height: 3px; border-radius: 99px;
+  background: var(--border); outline: none; cursor: pointer;
+}
+.zoom-slider::-webkit-slider-thumb {
+  -webkit-appearance: none; width: 14px; height: 14px;
+  border-radius: 50%; background: var(--t1);
+  border: 2px solid var(--surface); cursor: grab;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+}
+.zoom-slider::-webkit-slider-thumb:active { cursor: grabbing; }
+.zoom-action-btn {
+  font-size: 10px; font-weight: 700; color: var(--t3);
+  border: 1px solid var(--border); border-radius: var(--rs);
+  padding: 4px 8px; background: transparent; transition: all 0.12s;
+  white-space: nowrap;
+}
+.zoom-action-btn:hover { border-color: var(--t2); color: var(--t2); }
+
+/* draggable input */
+.drag-input-wrap { position: relative; }
+.drag-input-wrap input { cursor: ew-resize; }
+.drag-input-wrap input:focus { cursor: text; }
+
+/* ── Ratio chips ── */
+.ratio-grid { display: flex; flex-wrap: wrap; gap: 5px; }
+.ratio-chip {
+  border: 1px solid var(--border); border-radius: var(--rs);
+  padding: 5px 6px; background: transparent;
+  display: flex; flex-direction: column; align-items: center; gap: 3px;
+  transition: all 0.13s; color: var(--t1); min-width: 52px;
+}
+.ratio-chip:hover { border-color: var(--t2); background: var(--bg); }
+.ratio-chip.active { border-color: var(--t1); background: var(--t1); color: var(--surface); }
+.ratio-chip .rl { font-size: 10px; font-weight: 700; letter-spacing: -0.01em; }
+
+/* ── Input panel ── */
+.input-row { display: grid; grid-template-columns: 1fr 30px 1fr; gap: 6px; align-items: center; }
+.input-grp { display: flex; flex-direction: column; gap: 4px; }
+.input-icon { display: flex; align-items: center; color: var(--t3); }
+.input-grp input {
+  width: 100%; padding: 7px 8px;
+  font-size: 17px; font-weight: 700; letter-spacing: -0.02em;
+  font-family: inherit; font-variant-numeric: tabular-nums;
+  border: 1px solid var(--border); border-radius: var(--rs);
+  background: var(--bg); color: var(--t1); outline: none;
+  transition: border-color 0.13s; -moz-appearance: textfield;
+}
+.input-grp input::-webkit-outer-spin-button,
+.input-grp input::-webkit-inner-spin-button { -webkit-appearance: none; }
+.input-grp input:focus { border-color: var(--t2); background: var(--surface); }
+.input-grp input.computed { color: var(--t2); background: var(--border2); border-color: transparent; }
+.lock-btn {
+  display: flex; align-items: center; justify-content: center;
+  width: 30px; height: 30px; border-radius: 50%;
+  border: 1px solid var(--border); background: transparent;
+  transition: all 0.13s; color: var(--t3); margin-top: 17px;
+}
+.lock-btn:hover { border-color: var(--t2); color: var(--t2); }
+.lock-btn.locked { border-color: var(--t1); background: var(--t1); color: var(--surface); }
+.ratio-readout { font-size: 10px; font-weight: 600; color: var(--t3); text-align: center; font-variant-numeric: tabular-nums; }
+
+/* ── Templates ── */
+.cat-tabs { display: flex; gap: 4px; flex-wrap: wrap; }
+.cat-tab {
+  display: flex; align-items: center; justify-content: center;
+  width: 32px; height: 32px; border-radius: var(--rs);
+  border: 1px solid var(--border); background: transparent;
+  color: var(--t3); transition: all 0.12s;
+}
+.cat-tab:hover { border-color: var(--t2); color: var(--t2); }
+.cat-tab.active { background: var(--t1); border-color: var(--t1); color: var(--surface); }
+.tpl-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 3px; }
+.tpl-item {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 7px 9px; border-radius: var(--rs); cursor: pointer;
+  border: 1px solid transparent; transition: all 0.1s; gap: 6px;
+}
+.tpl-item:hover { background: var(--bg); border-color: var(--border2); }
+.tpl-item.active { background: var(--border2); border-color: var(--border); }
+.tpl-left { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.tpl-name { font-size: 11px; font-weight: 500; color: var(--t1); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tpl-size { font-size: 10px; color: var(--t3); font-variant-numeric: tabular-nums; font-weight: 600; flex-shrink: 0; }
+
+/* ── Icon buttons ── */
+.ic-btn {
+  display: flex; align-items: center; justify-content: center;
+  border: 1px solid var(--border); border-radius: var(--rs);
+  padding: 6px; background: transparent;
+  color: var(--t3); transition: all 0.12s;
+}
+.ic-btn:hover { border-color: var(--t2); color: var(--t2); }
+.ic-btn.on { background: var(--t1); border-color: var(--t1); color: var(--surface); }
+.ic-btn.danger:hover { border-color: #c0392b; color: #c0392b; }
+
+/* dark toggle */
+.dark-toggle {
+  display: flex; align-items: center; gap: 5px;
+  border: 1px solid var(--border); border-radius: 99px;
+  padding: 4px 10px; background: transparent;
+  font-size: 10px; font-weight: 700; color: var(--t3);
+  transition: all 0.13s; letter-spacing: 0.04em;
+}
+.dark-toggle:hover { border-color: var(--t2); color: var(--t2); }
+.dark-toggle.on { background: var(--t1); border-color: var(--t1); color: var(--surface); }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useEffect, useRef, useCallback } = React;
+
+// ── Icons ──────────────────────────────────────────────────────────────────
+const Ic = {
+  width:   () => <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5"><line x1="0" y1="6" x2="12" y2="6"/><polyline points="3,3 0,6 3,9"/><polyline points="9,3 12,6 9,9"/></svg>,
+  height:  () => <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5"><line x1="6" y1="0" x2="6" y2="12"/><polyline points="3,3 6,0 9,3"/><polyline points="3,9 6,12 9,9"/></svg>,
+  lock:    () => <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.4"><rect x="2" y="5.5" width="8" height="6" rx="1.2"/><path d="M3.5 5.5V4A2.5 2.5 0 0 1 8.5 4v1.5"/></svg>,
+  unlock:  () => <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.4"><rect x="2" y="5.5" width="8" height="6" rx="1.2"/><path d="M3.5 5.5V4A2.5 2.5 0 0 1 8.5 4"/></svg>,
+  image:   () => <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.4"><rect x="1" y="2" width="12" height="10" rx="1.5"/><circle cx="4.5" cy="5.5" r="1"/><polyline points="1,10 4,7 6.5,9.5 9,7.5 13,11"/></svg>,
+  eyeOn:   () => <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.4"><path d="M1 7s2.5-4 6-4 6 4 6 4-2.5 4-6 4-6-4-6-4z"/><circle cx="7" cy="7" r="1.8"/></svg>,
+  eyeOff:  () => <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.4"><line x1="2" y1="2" x2="12" y2="12"/><path d="M5.5 4.2A5.3 5.3 0 0 1 7 4c3.5 0 6 3 6 3s-.8 1.3-2.2 2.3"/><path d="M3.5 5.3C2.3 6.1 1 7 1 7s2.5 3 6 3c.8 0 1.5-.15 2.2-.4"/></svg>,
+  upload:  () => <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" strokeWidth="1.4"><polyline points="3,5 6.5,1.5 10,5"/><line x1="6.5" y1="1.5" x2="6.5" y2="9"/><path d="M2 10.5h9"/></svg>,
+  drop:    () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="3" y="3" width="18" height="18" rx="3" strokeDasharray="3 2"/><polyline points="8,11 12,7 16,11"/><line x1="12" y1="7" x2="12" y2="16"/></svg>,
+  safe:    () => <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.4"><rect x="1" y="1" width="12" height="12" rx="1"/><rect x="3" y="3" width="8" height="8" rx="0.5" strokeDasharray="2 1"/></svg>,
+  save:    () => <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.4"><path d="M2 12h10"/><polyline points="5,9 7,12 9,9"/><line x1="7" y1="2" x2="7" y2="12"/></svg>,
+  moon:    () => <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" strokeWidth="1.4"><path d="M10.5 7.5A5 5 0 0 1 5.5 2.5a5 5 0 1 0 5 5z"/></svg>,
+  sun:     () => <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" strokeWidth="1.4"><circle cx="6.5" cy="6.5" r="2.5"/><line x1="6.5" y1="1" x2="6.5" y2="2.5"/><line x1="6.5" y1="10.5" x2="6.5" y2="12"/><line x1="1" y1="6.5" x2="2.5" y2="6.5"/><line x1="10.5" y1="6.5" x2="12" y2="6.5"/><line x1="2.9" y1="2.9" x2="3.9" y2="3.9"/><line x1="9.1" y1="9.1" x2="10.1" y2="10.1"/><line x1="9.1" y1="2.9" x2="10.1" y2="3.9"/><line x1="2.9" y1="9.1" x2="3.9" y2="10.1"/></svg>,
+  trash:   () => <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" strokeWidth="1.4"><polyline points="2,3 11,3"/><path d="M4 3V2h5v1"/><rect x="3" y="3" width="7" height="8" rx="1"/><line x1="5" y1="5.5" x2="5" y2="9"/><line x1="8" y1="5.5" x2="8" y2="9"/></svg>,
+  catAll:     () => <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" strokeWidth="1.4"><rect x="1" y="1" width="4.5" height="4.5" rx="1"/><rect x="7.5" y="1" width="4.5" height="4.5" rx="1"/><rect x="1" y="7.5" width="4.5" height="4.5" rx="1"/><rect x="7.5" y="7.5" width="4.5" height="4.5" rx="1"/></svg>,
+  catDisplay: () => <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" strokeWidth="1.4"><rect x="1" y="2" width="11" height="7" rx="1.5"/><line x1="4.5" y1="11" x2="8.5" y2="11"/><line x1="6.5" y1="9" x2="6.5" y2="11"/></svg>,
+  catVideo:   () => <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinejoin="round"><rect x="1" y="3" width="7.5" height="7" rx="1.5"/><polyline points="8.5,5 12,3.5 12,9.5 8.5,8"/></svg>,
+  catSocial:  () => <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" strokeWidth="1.4"><path d="M1 3a1 1 0 0 1 1-1h9a1 1 0 0 1 1 1v5a1 1 0 0 1-1 1H4l-3 2V3z"/></svg>,
+  catWeb:     () => <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" strokeWidth="1.4"><circle cx="6.5" cy="6.5" r="5"/><ellipse cx="6.5" cy="6.5" rx="2.2" ry="5"/><line x1="1.5" y1="6.5" x2="11.5" y2="6.5"/></svg>,
+  catMobile:  () => <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" strokeWidth="1.4"><rect x="4" y="1" width="5" height="11" rx="1.5"/><line x1="5.5" y1="10" x2="7.5" y2="10"/></svg>,
+  catPrint:   () => <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" strokeWidth="1.4"><rect x="3" y="1" width="7" height="5" rx="1"/><path d="M3 6H2A.5.5 0 0 0 1.5 6.5v4a.5.5 0 0 0 .5.5H4V9h5v2h2a.5.5 0 0 0 .5-.5v-4A.5.5 0 0 0 11 6h-1"/><line x1="4.5" y1="8" x2="8.5" y2="8"/><line x1="4.5" y1="10" x2="8.5" y2="10"/></svg>,
+};
+
+const CAT_ICONS = {
+  all: Ic.catAll, display: Ic.catDisplay, video: Ic.catVideo,
+  social: Ic.catSocial, web: Ic.catWeb, mobile: Ic.catMobile, print: Ic.catPrint,
+};
+
+// ── Data ───────────────────────────────────────────────────────────────────
+const RATIOS = [
+  { label:'1:1',    w:1,    h:1    },
+  { label:'4:3',    w:4,    h:3    },
+  { label:'3:2',    w:3,    h:2    },
+  { label:'16:9',   w:16,   h:9    },
+  { label:'16:10',  w:16,   h:10   },
+  { label:'21:9',   w:21,   h:9    },
+  { label:'32:9',   w:32,   h:9    },
+  { label:'9:16',   w:9,    h:16   },
+  { label:'4:5',    w:4,    h:5    },
+  { label:'2:1',    w:2,    h:1    },
+  { label:'2.35:1', w:2.35, h:1    },
+  { label:'1.85:1', w:1.85, h:1    },
+  { label:'1.91:1', w:1.91, h:1    },
+  { label:'5:4',    w:5,    h:4    },
+  { label:'3:4',    w:3,    h:4    },
+  { label:'2:3',    w:2,    h:3    },
+];
+
+const TEMPLATES = [
+  { name:'HD (720p)',              w:1280,  h:720,   cat:'display' },
+  { name:'Full HD (1080p)',        w:1920,  h:1080,  cat:'display' },
+  { name:'QHD (1440p)',            w:2560,  h:1440,  cat:'display' },
+  { name:'4K UHD',                 w:3840,  h:2160,  cat:'display' },
+  { name:'5K',                     w:5120,  h:2880,  cat:'display' },
+  { name:'8K UHD',                 w:7680,  h:4320,  cat:'display' },
+  { name:'UWQHD (3440×1440)',      w:3440,  h:1440,  cat:'display' },
+  { name:'UW5K (5120×2160)',       w:5120,  h:2160,  cat:'display' },
+  { name:'MacBook Air 13"',        w:2560,  h:1664,  cat:'display' },
+  { name:'MacBook Pro 14"',        w:3024,  h:1964,  cat:'display' },
+  { name:'MacBook Pro 16"',        w:3456,  h:2234,  cat:'display' },
+  { name:'Studio Display',         w:5120,  h:2880,  cat:'display' },
+  { name:'Pro Display XDR',        w:6016,  h:3384,  cat:'display' },
+  { name:'YouTube Thumbnail',      w:1280,  h:720,   cat:'video'   },
+  { name:'YouTube Shorts',         w:1080,  h:1920,  cat:'video'   },
+  { name:'TikTok / Reels',         w:1080,  h:1920,  cat:'video'   },
+  { name:'Twitter/X Video',        w:1280,  h:720,   cat:'video'   },
+  { name:'DCP 2K Flat',            w:1998,  h:1080,  cat:'video'   },
+  { name:'DCP 2K Scope',           w:2048,  h:858,   cat:'video'   },
+  { name:'DCP 4K Flat',            w:3996,  h:2160,  cat:'video'   },
+  { name:'DCP 4K Scope',           w:4096,  h:1716,  cat:'video'   },
+  { name:'Anamorphic 2.39:1',      w:2560,  h:1070,  cat:'video'   },
+  { name:'Super 35 (2K)',          w:2048,  h:1556,  cat:'video'   },
+  { name:'IMAX 1.43:1',            w:4096,  h:2866,  cat:'video'   },
+  { name:'IMAX 1.9:1 (Digital)',   w:4096,  h:2160,  cat:'video'   },
+  { name:'RED 8K Vista Vision',    w:8192,  h:5458,  cat:'video'   },
+  { name:'Vimeo 4K',               w:3840,  h:2160,  cat:'video'   },
+  { name:'Instagram Square',       w:1080,  h:1080,  cat:'social'  },
+  { name:'Instagram Portrait',     w:1080,  h:1350,  cat:'social'  },
+  { name:'Instagram Story',        w:1080,  h:1920,  cat:'social'  },
+  { name:'X (Twitter) Post',       w:1200,  h:675,   cat:'social'  },
+  { name:'X (Twitter) Banner',     w:1500,  h:500,   cat:'social'  },
+  { name:'Facebook Cover',         w:851,   h:315,   cat:'social'  },
+  { name:'Facebook Post',          w:1200,  h:630,   cat:'social'  },
+  { name:'LinkedIn Cover',         w:1584,  h:396,   cat:'social'  },
+  { name:'LinkedIn Post',          w:1200,  h:627,   cat:'social'  },
+  { name:'Pinterest Pin',          w:1000,  h:1500,  cat:'social'  },
+  { name:'OGP / Open Graph',       w:1200,  h:630,   cat:'web'     },
+  { name:'Favicon 16',             w:16,    h:16,    cat:'web'     },
+  { name:'Favicon 32',             w:32,    h:32,    cat:'web'     },
+  { name:'App Icon (512)',         w:512,   h:512,   cat:'web'     },
+  { name:'Apple Touch Icon',       w:180,   h:180,   cat:'web'     },
+  { name:'Twitter Card',           w:1200,  h:628,   cat:'web'     },
+  { name:'Hero Banner (Wide)',     w:1920,  h:640,   cat:'web'     },
+  { name:'iPhone 16 Pro Max',      w:1320,  h:2868,  cat:'mobile'  },
+  { name:'iPhone 16 Pro',          w:1206,  h:2622,  cat:'mobile'  },
+  { name:'iPhone 15 Pro',          w:1179,  h:2556,  cat:'mobile'  },
+  { name:'iPhone 14',              w:1170,  h:2532,  cat:'mobile'  },
+  { name:'iPhone SE (3rd)',         w:750,   h:1334,  cat:'mobile'  },
+  { name:'iPad Pro 13"',           w:2064,  h:2752,  cat:'mobile'  },
+  { name:'iPad Pro 11"',           w:1668,  h:2388,  cat:'mobile'  },
+  { name:'iPad Air 11"',           w:1640,  h:2360,  cat:'mobile'  },
+  { name:'Galaxy S24 Ultra',       w:1440,  h:3088,  cat:'mobile'  },
+  { name:'Galaxy S24',             w:1080,  h:2340,  cat:'mobile'  },
+  { name:'Pixel 9 Pro',            w:1344,  h:2992,  cat:'mobile'  },
+  { name:'Pixel 9',                w:1080,  h:2424,  cat:'mobile'  },
+  { name:'Galaxy Z Fold 6 (out)',  w:2376,  h:1968,  cat:'mobile'  },
+  { name:'Galaxy Z Fold 6 (in)',   w:968,   h:2076,  cat:'mobile'  },
+  { name:'Galaxy Z Flip 6 (out)',  w:720,   h:2640,  cat:'mobile'  },
+  { name:'Galaxy Z Flip 6 (cvr)',  w:720,   h:748,   cat:'mobile'  },
+  { name:'OnePlus Open (out)',     w:2440,  h:2268,  cat:'mobile'  },
+  { name:'OnePlus Open (in)',      w:1116,  h:2484,  cat:'mobile'  },
+  { name:'A0 Portrait (300dpi)',   w:9933,  h:14043, cat:'print'   },
+  { name:'A1 Portrait (300dpi)',   w:7016,  h:9933,  cat:'print'   },
+  { name:'A2 Portrait (300dpi)',   w:4961,  h:7016,  cat:'print'   },
+  { name:'A3 Portrait (300dpi)',   w:3508,  h:4961,  cat:'print'   },
+  { name:'A3 Landscape (300dpi)', w:4961,  h:3508,  cat:'print'   },
+  { name:'A4 Portrait (300dpi)',   w:2480,  h:3508,  cat:'print'   },
+  { name:'A4 Landscape (300dpi)', w:3508,  h:2480,  cat:'print'   },
+  { name:'A5 Portrait (300dpi)',   w:1748,  h:2480,  cat:'print'   },
+  { name:'B4 Portrait (300dpi)',   w:2953,  h:4169,  cat:'print'   },
+  { name:'B5 Portrait (300dpi)',   w:2079,  h:2953,  cat:'print'   },
+  { name:'Letter (300dpi)',        w:2550,  h:3300,  cat:'print'   },
+  { name:'Legal (300dpi)',         w:2550,  h:4200,  cat:'print'   },
+  { name:'Tabloid (300dpi)',       w:3300,  h:5100,  cat:'print'   },
+  { name:'Postcard (300dpi)',      w:1748,  h:1181,  cat:'print'   },
+  { name:'Business Card (300dpi)',w:1050,  h:600,   cat:'print'   },
+  { name:'Poster B0 (150dpi)',     w:4964,  h:7022,  cat:'print'   },
+  { name:'Square Flyer (300dpi)', w:2480,  h:2480,  cat:'print'   },
+];
+
+// ── Safe area presets ──────────────────────────────────────────────────────
+// Mirrors broadcast/film safe area conventions
+const SAFE_AREAS = [
+  { label: 'Action Safe', pct: 0.90, color: 'rgba(57,255,20,0.85)',  dash: '5,3' },
+  { label: 'Title Safe',  pct: 0.80, color: 'rgba(0,255,140,0.75)',  dash: '4,4' },
+];
+
+// ── Helpers ────────────────────────────────────────────────────────────────
+function gcd(a, b) { return b === 0 ? a : gcd(b, a % b); }
+function toRatio(w, h) {
+  if (!w || !h) return '—';
+  const g = gcd(Math.round(w), Math.round(h));
+  const rw = Math.round(w / g), rh = Math.round(h / g);
+  if (rw > 60 || rh > 60) return `${(w / h).toFixed(3)}:1`;
+  return `${rw}:${rh}`;
+}
+function detectRatio(w, h) {
+  if (!w || !h) return null;
+  const r = w / h;
+  for (const ar of RATIOS) {
+    if (Math.abs(r - ar.w / ar.h) < 0.013) return ar.label;
+  }
+  return null;
+}
+
+// ── RatioChip ──────────────────────────────────────────────────────────────
+function RatioChip({ ar, active, onClick }) {
+  const cW = 28, cH = 20, m = 2;
+  const maxW = cW - m*2, maxH = cH - m*2;
+  const arR = ar.w / ar.h;
+  let rw = maxW, rh = rw / arR;
+  if (rh > maxH) { rh = maxH; rw = rh * arR; }
+  rw = Math.max(rw, 2); rh = Math.max(rh, 2);
+  return (
+    <button className={`ratio-chip${active ? ' active' : ''}`} onClick={onClick} title={ar.label}>
+      <svg width={cW} height={cH} viewBox={`0 0 ${cW} ${cH}`} style={{display:'block'}}>
+        <rect
+          x={(cW-rw)/2} y={(cH-rh)/2} width={rw} height={rh}
+          fill={active ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.05)'}
+          stroke="currentColor" strokeWidth="1.4" rx="1"
+        />
+      </svg>
+      <span className="rl">{ar.label}</span>
+    </button>
+  );
+}
+
+// ── App ────────────────────────────────────────────────────────────────────
+function App() {
+  const [ratio,    setRatio]   = useState(RATIOS[3]);
+  const [locked,   setLocked]  = useState('w');
+  const [width,    setWidth]   = useState(1920);
+  const [height,   setHeight]  = useState(1080);
+  const [cat,      setCat]     = useState('all');
+  const [tpl,      setTpl]     = useState(null);
+  // Image
+  const [showImg,   setShowImg]  = useState(false);
+  const [imgSrc,    setImgSrc]   = useState(null);
+  const [imgNat,    setImgNat]   = useState({w:0,h:0}); // natural px size
+  const [fileDrag,  setFileDrag] = useState(false);
+  const [imgOff,    setImgOff]   = useState({x:0, y:0});
+  const [imgScale,  setImgScale] = useState(1);
+  const [panning,   setPanning]  = useState(false);
+  // Overlays
+  const [showSafe, setShowSafe]= useState(false);
+  // Theme
+  const [dark,     setDark]    = useState(false);
+
+  const fileRef   = useRef();
+  const imgRef    = useRef();
+  const pvWrapRef = useRef();
+
+  // Compute cover/fit scales given current pvW/pvH and natural image size
+  const getCoverScale = useCallback((nw, nh, pW, pH) => {
+    if (!nw || !nh) return 1;
+    return Math.max(pW / nw, pH / nh);
+  }, []);
+
+  const getFitScale = useCallback((nw, nh, pW, pH) => {
+    if (!nw || !nh) return 1;
+    return Math.min(pW / nw, pH / nh);
+  }, []);
+
+  // Apply dark class to body
+  useEffect(() => {
+    document.body.classList.toggle('dark', dark);
+  }, [dark]);
+
+  // Ratio change
+  useEffect(() => {
+    if (locked === 'w') setHeight(Math.round(width * ratio.h / ratio.w));
+    else                setWidth(Math.round(height * ratio.w / ratio.h));
+  }, [ratio]);
+
+  const handleW = v => { const n=parseInt(v)||0; setWidth(n); setHeight(Math.round(n*ratio.h/ratio.w)); setTpl(null); };
+  const handleH = v => { const n=parseInt(v)||0; setHeight(n); setWidth(Math.round(n*ratio.w/ratio.h)); setTpl(null); };
+
+  const applyTpl = t2 => {
+    setTpl(t2.name); setWidth(t2.w); setHeight(t2.h);
+    let best=null, bestD=9999;
+    const r=t2.w/t2.h;
+    for (const ar of RATIOS) { const d=Math.abs(r-ar.w/ar.h); if(d<bestD){bestD=d;best=ar;} }
+    if(best&&bestD<0.05) setRatio(best);
+  };
+
+  const loadFile = file => {
+    if (!file || !file.type.startsWith('image/')) return;
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => {
+      setImgNat({w: img.naturalWidth, h: img.naturalHeight});
+      // Initial scale: fit the image to the current preview frame (cover)
+      const coverS = getCoverScale(img.naturalWidth, img.naturalHeight, pvW, pvH);
+      setImgScale(coverS);
+      setImgOff({x:0, y:0});
+    };
+    img.src = url;
+    setImgSrc(url);
+    setImgOff({x:0, y:0});
+    setImgScale(1);
+    setShowImg(true);
+  };
+
+  const resetImgSize = () => { setImgScale(1); setImgOff({x:0,y:0}); };
+  const fitImgToFrame = () => {
+    const coverS = getCoverScale(imgNat.w, imgNat.h, pvW, pvH);
+    setImgScale(coverS);
+    setImgOff({x:0,y:0});
+  };
+
+  // File drag-drop onto preview area
+  const onFileDrop  = e => { e.preventDefault(); setFileDrag(false); loadFile(e.dataTransfer.files[0]); };
+  const onFileDragOver  = e => { e.preventDefault(); setFileDrag(true); };
+  const onFileDragLeave = () => setFileDrag(false);
+
+  // Image pan (mouse drag)
+  const onCanvasMouseDown = e => {
+    if (!showImg || !imgSrc) return;
+    e.preventDefault();
+    const sx = e.clientX - imgOff.x, sy = e.clientY - imgOff.y;
+    setPanning(true);
+    const onMove = ev => setImgOff({x: ev.clientX-sx, y: ev.clientY-sy});
+    const onUp   = () => { setPanning(false); window.removeEventListener('mousemove',onMove); window.removeEventListener('mouseup',onUp); };
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup',   onUp);
+  };
+
+  // Scroll to zoom
+  const onWheel = e => {
+    if (!showImg || !imgSrc) return;
+    e.preventDefault();
+    setImgScale(s => Math.max(0.1, Math.min(8, s * (e.deltaY < 0 ? 1.08 : 0.93))));
+  };
+
+  // Preview sizing
+  const MAX_W = 680, MAX_H = 340;
+  const arNum = width && height ? width/height : 1;
+  let pvW = MAX_W, pvH = MAX_W / arNum;
+  if (pvH > MAX_H) { pvH = MAX_H; pvW = MAX_H * arNum; }
+  pvW = Math.max(pvW, 32); pvH = Math.max(pvH, 32);
+
+  const inputPx  = (width||0)*(height||0);
+  const detR     = detectRatio(width, height);
+  const cats     = ['all','display','video','social','web','mobile','print'];
+  // Draggable number input: 5px mouse movement = 1px value change
+  const makeDragInput = (getValue, setValue) => ({
+    onMouseDown: e => {
+      if (e.button !== 0) return;
+      const startX   = e.clientX;
+      const startVal = getValue();
+      e.target.blur();
+      const onMove = ev => {
+        const delta = Math.round((ev.clientX - startX) / 5);
+        setValue(Math.max(1, startVal + delta));
+      };
+      const onUp = () => {
+        window.removeEventListener('mousemove', onMove);
+        window.removeEventListener('mouseup', onUp);
+      };
+      window.addEventListener('mousemove', onMove);
+      window.addEventListener('mouseup',   onUp);
+    }
+  });
+
+  const filtTpls = cat==='all' ? TEMPLATES : TEMPLATES.filter(t2=>t2.cat===cat);
+
+  const dragW = makeDragInput(() => width,  v => { setWidth(v);  setHeight(Math.round(v * ratio.h / ratio.w)); setTpl(null); });
+  const dragH = makeDragInput(() => height, v => { setHeight(v); setWidth(Math.round(v * ratio.w / ratio.h));  setTpl(null); });
+
+  // ── JPG Export ────────────────────────────────────────────────────────────
+  const exportJPG = () => {
+    const DPR  = 2;
+    const cW   = Math.round(pvW * DPR);
+    const cH   = Math.round(pvH * DPR);
+    const canvas = document.createElement('canvas');
+    canvas.width  = cW;
+    canvas.height = cH;
+    const ctx = canvas.getContext('2d');
+
+    // BG
+    const bgColor = dark ? '#181715' : '#f0efe9';
+    ctx.fillStyle = bgColor;
+    ctx.fillRect(0, 0, cW, cH);
+
+    // Image
+    if (imgSrc && imgRef.current) {
+      const img = imgRef.current;
+      ctx.save();
+      ctx.beginPath(); ctx.rect(0, 0, cW, cH); ctx.clip();
+      const iw = img.naturalWidth  * imgScale * DPR;
+      const ih = img.naturalHeight * imgScale * DPR;
+      const ix = cW/2 + imgOff.x * DPR - iw/2;
+      const iy = cH/2 + imgOff.y * DPR - ih/2;
+      ctx.drawImage(img, ix, iy, iw, ih);
+      ctx.restore();
+    }
+
+    // Safe areas
+    if (showSafe) {
+      SAFE_AREAS.forEach(sa => {
+        const inX = cW * (1 - sa.pct) / 2;
+        const inY = cH * (1 - sa.pct) / 2;
+        ctx.strokeStyle = sa.color;
+        ctx.lineWidth   = DPR;
+        ctx.setLineDash(sa.dash.split(',').map(Number));
+        ctx.strokeRect(inX, inY, cW - inX*2, cH - inY*2);
+      });
+      ctx.setLineDash([]);
+    }
+
+    // Frame
+    ctx.strokeStyle = dark ? '#e8e6df' : '#1e1d1b';
+    ctx.lineWidth   = 1.5 * DPR;
+    ctx.strokeRect(0.75*DPR, 0.75*DPR, cW-1.5*DPR, cH-1.5*DPR);
+
+    const a = document.createElement('a');
+    a.download = `${width}x${height}.jpg`;
+    a.href     = canvas.toDataURL('image/jpeg', 0.93);
+    a.click();
+  };
+
+  const clearImage = () => { setImgSrc(null); setImgNat({w:0,h:0}); setImgOff({x:0,y:0}); setImgScale(1); };
+
+  return (
+    <div>
+      {/* ── Topbar ── */}
+      <div className="topbar">
+        <div className="logo">PXL</div>
+        <button className={`dark-toggle${dark?' on':''}`} onClick={()=>setDark(d=>!d)}>
+          {dark ? <Ic.sun/> : <Ic.moon/>}
+        </button>
+      </div>
+
+      <div className="page">
+
+        {/* ── Preview ── */}
+        <div className="card">
+          <div className="card-inner">
+            <div className="card-head">
+              <div style={{display:'flex',alignItems:'center',gap:5,color:'var(--t3)'}}>
+                <Ic.image/>
+              </div>
+              <div style={{display:'flex',gap:5,alignItems:'center'}}>
+                {showImg && imgSrc && (
+                  <>
+                    <button className="ic-btn danger" onClick={clearImage} title="Remove image"><Ic.trash/></button>
+                    <button className="ic-btn" onClick={exportJPG} title="Save as JPG"><Ic.save/></button>
+                  </>
+                )}
+                <button className={`ic-btn${showSafe?' on':''}`} onClick={()=>setShowSafe(v=>!v)} title="Toggle safe area"><Ic.safe/></button>
+                {showImg && (
+                  <>
+                    <input ref={fileRef} type="file" accept="image/*" style={{display:'none'}} onChange={e=>loadFile(e.target.files[0])}/>
+                    <button className="ic-btn" onClick={()=>fileRef.current.click()} title="Choose file"><Ic.upload/></button>
+                  </>
+                )}
+                <button className={`ic-btn${showImg?' on':''}`} onClick={()=>setShowImg(v=>!v)} title="Toggle image">
+                  {showImg ? <Ic.eyeOn/> : <Ic.eyeOff/>}
+                </button>
+              </div>
+            </div>
+
+            {/* preview area */}
+            <div
+              className="preview-area"
+              onDrop={showImg ? onFileDrop : undefined}
+              onDragOver={showImg ? onFileDragOver : undefined}
+              onDragLeave={showImg ? onFileDragLeave : undefined}
+            >
+              {fileDrag && <div className="drop-overlay"><Ic.drop/></div>}
+
+              <div className="pv-wrap" ref={pvWrapRef} style={{width:pvW, height:pvH}}>
+
+                {/* image canvas */}
+                <div
+                  className={`pv-canvas${showImg&&imgSrc?' has-img':''}${panning?' panning':''}`}
+                  style={{position:'absolute',inset:0,overflow:'hidden',borderRadius:1}}
+                  onMouseDown={onCanvasMouseDown}
+                  onWheel={onWheel}
+                >
+                  {showImg && imgSrc && (
+                    <img
+                      ref={imgRef}
+                      src={imgSrc}
+                      alt=""
+                      className="pv-img"
+                      style={{
+                        transform:`translate(calc(-50% + ${imgOff.x}px), calc(-50% + ${imgOff.y}px)) scale(${imgScale})`,
+                        pointerEvents:'none', userSelect:'none',
+                        maxWidth:'none', maxHeight:'none',
+                      }}
+                    />
+                  )}
+                  {showImg && !imgSrc && (
+                    <div className="drop-hint">
+                      <Ic.drop/>
+                      <span>drop / select</span>
+                    </div>
+                  )}
+                </div>
+
+                {/* safe area SVG */}
+                {showSafe && (
+                  <svg className="pv-safe" viewBox={`0 0 ${pvW} ${pvH}`} preserveAspectRatio="none" width={pvW} height={pvH}>
+                    {SAFE_AREAS.map(sa => {
+                      const inX = pvW * (1-sa.pct)/2;
+                      const inY = pvH * (1-sa.pct)/2;
+                      return (
+                        <g key={sa.label}>
+                          <rect
+                            x={inX} y={inY}
+                            width={pvW-inX*2} height={pvH-inY*2}
+                            fill="none" stroke={sa.color} strokeWidth="1"
+                            strokeDasharray={sa.dash}
+                          />
+                          <text x={inX+4} y={inY+10} fill={sa.color} fontSize="8" fontWeight="700" fontFamily="monospace">{sa.label}</text>
+                        </g>
+                      );
+                    })}
+                  </svg>
+                )}
+
+                {/* frame border */}
+                <div className="pv-frame"></div>
+
+                {/* dimension annotations */}
+                <div className="ann-h">
+                  <span className="ann-cap">◀</span>
+                  <div className="ann-line" style={{flex:1,height:1,position:'relative'}}>
+                    <span className="ann-val-h">{width} px</span>
+                  </div>
+                  <span className="ann-cap">▶</span>
+                </div>
+                <div className="ann-v">
+                  <span className="ann-cap">▲</span>
+                  <div className="ann-line" style={{flex:1,width:1,position:'relative'}}>
+                    <span className="ann-val-v">{height} px</span>
+                  </div>
+                  <span className="ann-cap">▼</span>
+                </div>
+
+                {/* badges */}
+                <div className="pv-badge-r">{detR||toRatio(width,height)}</div>
+                <div className="pv-badge-mp">{(inputPx/1e6).toFixed(2)} MP</div>
+
+              </div>{/* end pv-wrap */}
+
+            </div>{/* end preview-area */}
+
+            {/* zoom slider — outside preview-area so it's not clipped */}
+            {showImg && imgSrc && (
+              <div className="zoom-row" style={{marginTop:12}}>
+                <span className="zoom-label">{Math.round(imgScale*100)}%</span>
+                <input
+                  type="range" className="zoom-slider"
+                  min="0.05" max="8" step="0.01"
+                  value={imgScale}
+                  onChange={e => setImgScale(parseFloat(e.target.value))}
+                />
+                <button className="zoom-action-btn" onClick={resetImgSize} title="Natural size (1:1)">1:1</button>
+                <button className="zoom-action-btn" onClick={fitImgToFrame} title="↔ Fit">↔</button>
+              </div>
+            )}
+          </div>{/* end card-inner */}
+        </div>{/* end card */}
+
+        {/* ── Controls: ratio + input ── */}
+        <div style={{display:'grid', gridTemplateColumns:'1fr auto', gap:12, alignItems:'start'}}>
+          <div className="card">
+            <div className="card-inner">
+              <div className="ratio-grid">
+                {RATIOS.map(ar2 => (
+                  <RatioChip key={ar2.label} ar={ar2} active={ratio.label===ar2.label} onClick={()=>setRatio(ar2)}/>
+                ))}
+              </div>
+            </div>
+          </div>
+          <div className="card">
+            <div className="card-inner" style={{padding:'14px 16px'}}>
+              <div className="input-row">
+                <div className="input-grp drag-input-wrap">
+                  <div className="input-icon"><Ic.width/></div>
+                  <input type="number" value={width||''} placeholder="1920"
+                    onChange={e=>handleW(e.target.value)}
+                    className={locked==='h'?'computed':''}
+                    {...dragW}
+                  />
+                </div>
+                <button className={`lock-btn${locked==='h'?' locked':''}`}
+                  onClick={()=>setLocked(l=>l==='w'?'h':'w')}>
+                  {locked==='w' ? <Ic.unlock/> : <Ic.lock/>}
+                </button>
+                <div className="input-grp drag-input-wrap">
+                  <div className="input-icon"><Ic.height/></div>
+                  <input type="number" value={height||''} placeholder="1080"
+                    onChange={e=>handleH(e.target.value)}
+                    className={locked==='w'?'computed':''}
+                    {...dragH}
+                  />
+                </div>
+              </div>{/* end input-row */}
+              <div className="ratio-readout" style={{marginTop:8}}>
+                {detR||toRatio(width,height)} &nbsp;·&nbsp; {(inputPx/1e6).toFixed(2)} MP
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* ── Templates ── */}
+        <div className="card">
+          <div className="card-inner">
+            <div style={{display:'flex', alignItems:'center', gap:6, marginBottom:10}}>
+              <div className="cat-tabs">
+                {cats.map(c => {
+                  const Icon = CAT_ICONS[c];
+                  return (
+                    <button key={c} className={`cat-tab${cat===c?' active':''}`}
+                      onClick={()=>setCat(c)} title={c}>
+                      <Icon/>
+                    </button>
+                  );
+                })}
+              </div>
+              <span style={{fontSize:10,color:'var(--t3)',fontWeight:600}}>{filtTpls.length}</span>
+            </div>
+            <div className="tpl-grid">
+              {filtTpls.map(t2 => {
+                const CatIcon = CAT_ICONS[t2.cat];
+                return (
+                  <div key={t2.name} className={`tpl-item${tpl===t2.name?' active':''}`} onClick={()=>applyTpl(t2)}>
+                    <div className="tpl-left">
+                      <CatIcon/>
+                      <span className="tpl-name">{t2.name}</span>
+                    </div>
+                    <span className="tpl-size">{t2.w}×{t2.h}</span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+</body>
+</html>
