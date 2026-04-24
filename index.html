@@ -39,7 +39,7 @@ body {
   color: var(--t1);
   min-height: 100vh;
   -webkit-font-smoothing: antialiased;
-  transition: background 0.2s, color 0.2s;
+  transition: background 0.35s, color 0.35s;
 }
 button { font-family: inherit; cursor: pointer; }
 
@@ -66,13 +66,14 @@ button { font-family: inherit; cursor: pointer; }
   position: relative; border-radius: var(--rs);
   background: var(--bg);
   display: flex; align-items: center; justify-content: center;
-  min-height: 320px; padding: 44px 44px 20px 20px;
+  height: 360px; padding: 44px 44px 20px 20px;
   overflow: hidden;
+  flex-shrink: 0;
 }
 .pv-wrap {
   position: relative; flex-shrink: 0;
-  transition: width 0.38s cubic-bezier(0.34,1.28,0.64,1),
-              height 0.38s cubic-bezier(0.34,1.28,0.64,1);
+  transition: width 0.3s cubic-bezier(0.25,0.46,0.45,0.94),
+              height 0.3s cubic-bezier(0.25,0.46,0.45,0.94);
 }
 .pv-canvas {
   position: absolute; inset: 0; overflow: hidden; border-radius: 1px;
@@ -153,7 +154,6 @@ button { font-family: inherit; cursor: pointer; }
   pointer-events: none; z-index: 5;
   opacity: 0; transition: opacity 0.2s;
 }
-.pv-canvas.has-img:hover ~ .zoom-hint,
 .pv-canvas.has-img.panning ~ .zoom-hint { opacity: 1; }
 
 /* zoom slider row */
@@ -193,7 +193,7 @@ button { font-family: inherit; cursor: pointer; }
   border: 1px solid var(--border); border-radius: var(--rs);
   padding: 5px 6px; background: transparent;
   display: flex; flex-direction: column; align-items: center; gap: 3px;
-  transition: all 0.13s; color: var(--t1); min-width: 52px;
+  transition: all 0.22s; color: var(--t1); min-width: 52px;
 }
 .ratio-chip:hover { border-color: var(--t2); background: var(--bg); }
 .ratio-chip.active { border-color: var(--t1); background: var(--t1); color: var(--surface); }
@@ -311,7 +311,6 @@ const RATIOS = [
   { label:'4:3',    w:4,    h:3    },
   { label:'3:2',    w:3,    h:2    },
   { label:'16:9',   w:16,   h:9    },
-  { label:'16:10',  w:16,   h:10   },
   { label:'21:9',   w:21,   h:9    },
   { label:'32:9',   w:32,   h:9    },
   { label:'9:16',   w:9,    h:16   },
@@ -319,7 +318,6 @@ const RATIOS = [
   { label:'2:1',    w:2,    h:1    },
   { label:'2.35:1', w:2.35, h:1    },
   { label:'1.85:1', w:1.85, h:1    },
-  { label:'1.91:1', w:1.91, h:1    },
   { label:'5:4',    w:5,    h:4    },
   { label:'3:4',    w:3,    h:4    },
   { label:'2:3',    w:2,    h:3    },
@@ -410,8 +408,8 @@ const TEMPLATES = [
 // ── Safe area presets ──────────────────────────────────────────────────────
 // Mirrors broadcast/film safe area conventions
 const SAFE_AREAS = [
-  { label: 'Action Safe', pct: 0.90, color: 'rgba(57,255,20,0.85)',  dash: '5,3' },
-  { label: 'Title Safe',  pct: 0.80, color: 'rgba(0,255,140,0.75)',  dash: '4,4' },
+  { label: 'Action Safe', pct: 0.90, color: 'rgba(57,255,20,0.9)',  dash: '' },
+  { label: 'Title Safe',  pct: 0.80, color: 'rgba(0,255,140,0.8)',  dash: '' },
 ];
 
 // ── Helpers ────────────────────────────────────────────────────────────────
@@ -457,7 +455,7 @@ function RatioChip({ ar, active, onClick }) {
 // ── App ────────────────────────────────────────────────────────────────────
 function App() {
   const [ratio,    setRatio]   = useState(RATIOS[3]);
-  const [locked,   setLocked]  = useState('w');
+  const [linked,   setLinked]  = useState(true); // true=aspect ratio locked
   const [width,    setWidth]   = useState(1920);
   const [height,   setHeight]  = useState(1080);
   const [cat,      setCat]     = useState('all');
@@ -465,19 +463,29 @@ function App() {
   // Image
   const [showImg,   setShowImg]  = useState(false);
   const [imgSrc,    setImgSrc]   = useState(null);
-  const [imgNat,    setImgNat]   = useState({w:0,h:0}); // natural px size
+  const [imgNat,    setImgNat_]   = useState({w:0,h:0});
+  const setImgNat = v => { imgNatRef.current=v; setImgNat_(v); };
   const [fileDrag,  setFileDrag] = useState(false);
-  const [imgOff,    setImgOff]   = useState({x:0, y:0});
-  const [imgScale,  setImgScale] = useState(1);
-  const [panning,   setPanning]  = useState(false);
+  const dragCounterRef = useRef(0);
+  const [imgOff,    setImgOff_]  = useState({x:0, y:0});
+  const setImgOff = v => { const val = typeof v==='function'?v(imgOffRef.current):v; imgOffRef.current=val; setImgOff_(val); };
+  const [imgFileName, setImgFileName] = useState('');
+  const [snapMode,  setSnapMode_] = useState('h');
+  const setSnapMode = v => { snapModeRef.current=v; setSnapMode_(v); };
+  const [panning,   setPanning_]  = useState(false);
+  const setPanning = v => { panningRef.current=v; setPanning_(v); };
   // Overlays
   const [showSafe, setShowSafe]= useState(false);
   // Theme
   const [dark,     setDark]    = useState(false);
 
-  const fileRef   = useRef();
-  const imgRef    = useRef();
-  const pvWrapRef = useRef();
+  const fileRef    = useRef();
+  const imgRef     = useRef();
+  const pvWrapRef  = useRef();
+  const imgOffRef  = useRef({x:0, y:0});   // mirror of imgOff for rAF
+  const snapModeRef = useRef('h');          // mirror of snapMode for rAF
+  const imgNatRef  = useRef({w:0, h:0});   // mirror of imgNat for rAF
+  const panningRef = useRef(false);
 
   // Compute cover/fit scales given current pvW/pvH and natural image size
   const getCoverScale = useCallback((nw, nh, pW, pH) => {
@@ -485,24 +493,39 @@ function App() {
     return Math.max(pW / nw, pH / nh);
   }, []);
 
-  const getFitScale = useCallback((nw, nh, pW, pH) => {
-    if (!nw || !nh) return 1;
-    return Math.min(pW / nw, pH / nh);
-  }, []);
-
   // Apply dark class to body
   useEffect(() => {
     document.body.classList.toggle('dark', dark);
   }, [dark]);
 
-  // Ratio change
+  // Sync image transform to pv-wrap actual size every frame (follows CSS transition)
   useEffect(() => {
-    if (locked === 'w') setHeight(Math.round(width * ratio.h / ratio.w));
-    else                setWidth(Math.round(height * ratio.w / ratio.h));
+    let rafId;
+    const tick = () => {
+      if (pvWrapRef.current && imgRef.current && imgNatRef.current.w) {
+        const r = pvWrapRef.current.getBoundingClientRect();
+        const aw = r.width, ah = r.height;
+        const nat = imgNatRef.current;
+        const scale = snapModeRef.current === 'h' ? ah / nat.h : aw / nat.w;
+        const off = panningRef.current ? imgOffRef.current : imgOffRef.current;
+        imgRef.current.style.transform =
+          `translate(calc(-50% + ${off.x}px), calc(-50% + ${off.y}px)) scale(${scale})`;
+      }
+      rafId = requestAnimationFrame(tick);
+    };
+    rafId = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(rafId);
+  }, []);
+
+
+
+  // Ratio change: always update H from W to match new ratio
+  useEffect(() => {
+    setHeight(Math.round(width * ratio.h / ratio.w));
   }, [ratio]);
 
-  const handleW = v => { const n=parseInt(v)||0; setWidth(n); setHeight(Math.round(n*ratio.h/ratio.w)); setTpl(null); };
-  const handleH = v => { const n=parseInt(v)||0; setHeight(n); setWidth(Math.round(n*ratio.w/ratio.h)); setTpl(null); };
+  const handleW = v => { const n=parseInt(v)||0; setWidth(n); if(linked) setHeight(Math.round(n*ratio.h/ratio.w)); setTpl(null); };
+  const handleH = v => { const n=parseInt(v)||0; setHeight(n); if(linked) setWidth(Math.round(n*ratio.w/ratio.h)); setTpl(null); };
 
   const applyTpl = t2 => {
     setTpl(t2.name); setWidth(t2.w); setHeight(t2.h);
@@ -514,51 +537,82 @@ function App() {
 
   const loadFile = file => {
     if (!file || !file.type.startsWith('image/')) return;
+    const baseName = file.name.replace(/\.[^.]+$/, '');
+    setImgFileName(baseName);
     const url = URL.createObjectURL(file);
     const img = new Image();
     img.onload = () => {
-      setImgNat({w: img.naturalWidth, h: img.naturalHeight});
-      // Initial scale: fit the image to the current preview frame (cover)
-      const coverS = getCoverScale(img.naturalWidth, img.naturalHeight, pvW, pvH);
-      setImgScale(coverS);
-      setImgOff({x:0, y:0});
+      const nw = img.naturalWidth, nh = img.naturalHeight;
+      setImgNat({w: nw, h: nh});
+      // auto-apply natural dimensions as output size
+      setWidth(nw); setHeight(nh); setTpl(null);
+      // find closest matching ratio
+      const r = nw / nh;
+      let best = null, bestD = 9999;
+      for (const ar of RATIOS) { const d = Math.abs(r - ar.w/ar.h); if (d < bestD) { bestD=d; best=ar; } }
+      if (best) setRatio(best);
     };
     img.src = url;
     setImgSrc(url);
     setImgOff({x:0, y:0});
-    setImgScale(1);
     setShowImg(true);
   };
 
-  const resetImgSize = () => { setImgScale(1); setImgOff({x:0,y:0}); };
-  const fitImgToFrame = () => {
-    const coverS = getCoverScale(imgNat.w, imgNat.h, pvW, pvH);
-    setImgScale(coverS);
-    setImgOff({x:0,y:0});
-  };
+  // On ratio/dim change: auto-select snapMode that causes overflow, then clamp offset
+  useEffect(() => {
+    if (!imgNat.w || !imgNat.h) { setImgOff({x:0,y:0}); return; }
+    const imgAR  = imgNat.w / imgNat.h;
+    const frameAR = pvW / pvH;
+    // If image is wider than frame → fit height → overflow X → h-snap
+    // If image is taller than frame → fit width  → overflow Y → v-snap
+    const bestSnap = imgAR > frameAR ? 'h' : 'v';
+    setSnapMode(bestSnap);
+    // clamp offset for new snap/frame
+    const scale = bestSnap === 'h' ? pvH / imgNat.h : pvW / imgNat.w;
+    const iw = imgNat.w * scale, ih = imgNat.h * scale;
+    const maxX = Math.max(0, (iw - pvW) / 2);
+    const maxY = Math.max(0, (ih - pvH) / 2);
+    setImgOff(prev => ({
+      x: Math.max(-maxX, Math.min(maxX, prev.x)),
+      y: Math.max(-maxY, Math.min(maxY, prev.y)),
+    }));
+  }, [pvW, pvH]);
 
-  // File drag-drop onto preview area
-  const onFileDrop  = e => { e.preventDefault(); setFileDrag(false); loadFile(e.dataTransfer.files[0]); };
-  const onFileDragOver  = e => { e.preventDefault(); setFileDrag(true); };
-  const onFileDragLeave = () => setFileDrag(false);
+  const resetImgPos = () => setImgOff({x:0, y:0});
 
-  // Image pan (mouse drag)
-  const onCanvasMouseDown = e => {
+  // File drag-drop onto preview area (always active, counter prevents flicker)
+  const onFileDrop = e => { e.preventDefault(); dragCounterRef.current=0; setFileDrag(false); loadFile(e.dataTransfer.files[0]); setShowImg(true); };
+  const onFileDragOver = e => { e.preventDefault(); };
+  const onFileDragEnter = e => { e.preventDefault(); dragCounterRef.current++; setFileDrag(true); };
+  const onFileDragLeave = () => { dragCounterRef.current--; if(dragCounterRef.current<=0){ dragCounterRef.current=0; setFileDrag(false); } };
+
+  // Image pan: h-snap → X only moves, v-snap → Y only moves
+  // Use sx/sy as running anchor updated each frame to avoid stale closure
+    const onCanvasMouseDown = e => {
     if (!showImg || !imgSrc) return;
     e.preventDefault();
-    const sx = e.clientX - imgOff.x, sy = e.clientY - imgOff.y;
+    const nat = imgNatRef.current;
+    const sm  = snapModeRef.current;
+    const pw  = pvWrapRef.current ? pvWrapRef.current.getBoundingClientRect().width  : pvW;
+    const ph  = pvWrapRef.current ? pvWrapRef.current.getBoundingClientRect().height : pvH;
+    const sc  = sm === 'h' ? ph / nat.h : pw / nat.w;
+    const maxX = Math.max(0, (nat.w * sc - pw) / 2);
+    const maxY = Math.max(0, (nat.h * sc - ph) / 2);
+    const clamp = (v, max) => Math.max(-max, Math.min(max, v));
+    let prevMx = e.clientX, prevMy = e.clientY;
     setPanning(true);
-    const onMove = ev => setImgOff({x: ev.clientX-sx, y: ev.clientY-sy});
-    const onUp   = () => { setPanning(false); window.removeEventListener('mousemove',onMove); window.removeEventListener('mouseup',onUp); };
+    const onMove = ev => {
+      const dx = (ev.clientX - prevMx) * 0.38;
+      const dy = (ev.clientY - prevMy) * 0.38;
+      prevMx = ev.clientX; prevMy = ev.clientY;
+      setImgOff(prev => ({
+        x: snapModeRef.current === 'h' ? clamp(prev.x + dx, maxX) : 0,
+        y: snapModeRef.current === 'v' ? clamp(prev.y + dy, maxY) : 0,
+      }));
+    };
+    const onUp = () => { setPanning(false); window.removeEventListener('mousemove',onMove); window.removeEventListener('mouseup',onUp); };
     window.addEventListener('mousemove', onMove);
     window.addEventListener('mouseup',   onUp);
-  };
-
-  // Scroll to zoom
-  const onWheel = e => {
-    if (!showImg || !imgSrc) return;
-    e.preventDefault();
-    setImgScale(s => Math.max(0.1, Math.min(8, s * (e.deltaY < 0 ? 1.08 : 0.93))));
   };
 
   // Preview sizing
@@ -568,7 +622,16 @@ function App() {
   if (pvH > MAX_H) { pvH = MAX_H; pvW = MAX_H * arNum; }
   pvW = Math.max(pvW, 32); pvH = Math.max(pvH, 32);
 
+  // h-snap = fit height → overflow left/right → drag X
+  // v-snap = fit width  → overflow top/bottom → drag Y
+  const imgScale = imgNat.w
+    ? (snapMode === 'h' ? pvH / imgNat.h : pvW / imgNat.w)
+    : 1;
+
   const inputPx  = (width||0)*(height||0);
+  // Image natural size ratio
+  const natRatio = imgNat.w && imgNat.h ? toRatio(imgNat.w, imgNat.h) : null;
+  const natMp    = imgNat.w && imgNat.h ? ((imgNat.w * imgNat.h)/1e6).toFixed(2) : null;
   const detR     = detectRatio(width, height);
   const cats     = ['all','display','video','social','web','mobile','print'];
   // Draggable number input: 5px mouse movement = 1px value change
@@ -593,62 +656,64 @@ function App() {
 
   const filtTpls = cat==='all' ? TEMPLATES : TEMPLATES.filter(t2=>t2.cat===cat);
 
-  const dragW = makeDragInput(() => width,  v => { setWidth(v);  setHeight(Math.round(v * ratio.h / ratio.w)); setTpl(null); });
-  const dragH = makeDragInput(() => height, v => { setHeight(v); setWidth(Math.round(v * ratio.w / ratio.h));  setTpl(null); });
+  const dragW = makeDragInput(() => width,  v => { setWidth(v);  if(linked) setHeight(Math.round(v * ratio.h / ratio.w)); setTpl(null); });
+  const dragH = makeDragInput(() => height, v => { setHeight(v); if(linked) setWidth(Math.round(v * ratio.w / ratio.h));  setTpl(null); });
 
-  // ── JPG Export ────────────────────────────────────────────────────────────
-  const exportJPG = () => {
-    const DPR  = 2;
-    const cW   = Math.round(pvW * DPR);
-    const cH   = Math.round(pvH * DPR);
+  // ── Export (JPG or PNG) ──────────────────────────────────────────────────
+  const exportImg = (fmt) => {
+    setShowFmtMenu(false);
+    const cW = width, cH = height;
     const canvas = document.createElement('canvas');
-    canvas.width  = cW;
-    canvas.height = cH;
+    canvas.width = cW; canvas.height = cH;
     const ctx = canvas.getContext('2d');
-
-    // BG
-    const bgColor = dark ? '#181715' : '#f0efe9';
-    ctx.fillStyle = bgColor;
-    ctx.fillRect(0, 0, cW, cH);
-
-    // Image
+    // BG (PNG transparent if no image)
+    if (fmt === 'jpg') {
+      ctx.fillStyle = dark ? '#181715' : '#f0efe9';
+      ctx.fillRect(0, 0, cW, cH);
+    }
+    // Image: scale from pvW/pvH preview to actual output size
     if (imgSrc && imgRef.current) {
       const img = imgRef.current;
       ctx.save();
       ctx.beginPath(); ctx.rect(0, 0, cW, cH); ctx.clip();
-      const iw = img.naturalWidth  * imgScale * DPR;
-      const ih = img.naturalHeight * imgScale * DPR;
-      const ix = cW/2 + imgOff.x * DPR - iw/2;
-      const iy = cH/2 + imgOff.y * DPR - ih/2;
+      const scaleBase = snapMode === 'h' ? pvH / img.naturalHeight : pvW / img.naturalWidth;
+      const outScale  = snapMode === 'h' ? cH  / img.naturalHeight : cW  / img.naturalWidth;
+      const ratio = outScale / scaleBase;
+      const iw = img.naturalWidth  * outScale;
+      const ih = img.naturalHeight * outScale;
+      const ix = cW/2 + imgOff.x * ratio - iw/2;
+      const iy = cH/2 + imgOff.y * ratio - ih/2;
       ctx.drawImage(img, ix, iy, iw, ih);
       ctx.restore();
     }
-
     // Safe areas
     if (showSafe) {
       SAFE_AREAS.forEach(sa => {
         const inX = cW * (1 - sa.pct) / 2;
         const inY = cH * (1 - sa.pct) / 2;
         ctx.strokeStyle = sa.color;
-        ctx.lineWidth   = DPR;
-        ctx.setLineDash(sa.dash.split(',').map(Number));
+        ctx.lineWidth = 0.5;
+        ctx.setLineDash(sa.dash ? sa.dash.split(',').map(Number) : []);
         ctx.strokeRect(inX, inY, cW - inX*2, cH - inY*2);
       });
       ctx.setLineDash([]);
     }
-
-    // Frame
+    // Frame border
     ctx.strokeStyle = dark ? '#e8e6df' : '#1e1d1b';
-    ctx.lineWidth   = 1.5 * DPR;
-    ctx.strokeRect(0.75*DPR, 0.75*DPR, cW-1.5*DPR, cH-1.5*DPR);
-
+    ctx.lineWidth = 1;
+    ctx.strokeRect(0.5, 0.5, cW-1, cH-1);
+    // Download
+    const ratio_str = `${width}x${height}`;
+    const base = imgFileName || 'image';
     const a = document.createElement('a');
-    a.download = `${width}x${height}.jpg`;
-    a.href     = canvas.toDataURL('image/jpeg', 0.93);
+    a.download = `${base}_${ratio_str}.${fmt}`;
+    a.href = fmt === 'jpg'
+      ? canvas.toDataURL('image/jpeg', 0.93)
+      : canvas.toDataURL('image/png');
     a.click();
   };
 
-  const clearImage = () => { setImgSrc(null); setImgNat({w:0,h:0}); setImgOff({x:0,y:0}); setImgScale(1); };
+  const clearImage = () => { setImgSrc(null); setImgNat({w:0,h:0}); setImgOff({x:0,y:0}); if(fileRef.current) fileRef.current.value=''; };
 
   return (
     <div>
@@ -660,7 +725,68 @@ function App() {
         </button>
       </div>
 
-      <div className="page">
+      <div className="page" style={{flexDirection:'row', alignItems:'flex-start', gap:14}}>
+
+        {/* ── Left sidebar: ratio only ── */}
+        <div style={{display:'flex', flexDirection:'column', gap:10, width:220, flexShrink:0}}>
+          <div className="card">
+            <div className="card-inner">
+              {[{svg:<svg width="16" height="10" viewBox="0 0 16 10" fill="none" stroke="currentColor" strokeWidth="1.4"><rect x="0.7" y="0.7" width="14.6" height="8.6" rx="1"/></svg>, list: RATIOS.filter(r=>r.w>r.h)},
+                {svg:<svg width="10" height="16" viewBox="0 0 10 16" fill="none" stroke="currentColor" strokeWidth="1.4"><rect x="0.7" y="0.7" width="8.6" height="14.6" rx="1"/></svg>, list: RATIOS.filter(r=>r.w<r.h)},
+                {svg:<svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.4"><rect x="0.7" y="0.7" width="10.6" height="10.6" rx="1"/></svg>, list: RATIOS.filter(r=>r.w===r.h)}
+              ].map((group,i)=>(
+                group.list.length ? (
+                  <div key={i} style={{marginBottom:8}}>
+                    <div style={{color:'var(--t3)',marginBottom:5,opacity:0.7}}>{group.svg}</div>
+                    <div className="ratio-grid">
+                      {group.list.map(ar2=>(
+                        <RatioChip key={ar2.label} ar={ar2} active={ratio.label===ar2.label} onClick={()=>setRatio(ar2)}/>
+                      ))}
+                    </div>
+                  </div>
+                ) : null
+              ))}
+            </div>
+          </div>
+
+          {/* ── Presets (collapsible, scrollable) ── */}
+          <details className="card" style={{cursor:'default'}}>
+            <summary style={{padding:'10px 14px',fontSize:10,fontWeight:700,color:'var(--t3)',letterSpacing:'0.05em',cursor:'pointer',listStyle:'none',display:'flex',alignItems:'center',gap:6}}>
+              <span style={{flex:1}}>PRESETS</span>
+              <span style={{fontSize:9,fontVariantNumeric:'tabular-nums'}}>{filtTpls.length}</span>
+            </summary>
+            <div style={{borderTop:'1px solid var(--border)', padding:'8px 10px 4px'}}>
+              <div style={{display:'flex', gap:4, marginBottom:6, flexWrap:'wrap'}}>
+                {cats.map(c => {
+                  const Icon = CAT_ICONS[c];
+                  return (
+                    <button key={c} className={`cat-tab${cat===c?' active':''}`}
+                      onClick={()=>setCat(c)} title={c}>
+                      <Icon/>
+                    </button>
+                  );
+                })}
+              </div>
+              <div style={{maxHeight:240, overflowY:'auto', display:'flex', flexDirection:'column', gap:1}}>
+                {filtTpls.map(t2 => {
+                  const CatIcon = CAT_ICONS[t2.cat];
+                  return (
+                    <div key={t2.name} className={`tpl-item${tpl===t2.name?' active':''}`} onClick={()=>applyTpl(t2)}>
+                      <div className="tpl-left">
+                        <CatIcon/>
+                        <span className="tpl-name">{t2.name}</span>
+                      </div>
+                      <span className="tpl-size">{t2.w}×{t2.h}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </details>
+        </div>
+
+        {/* ── Right column: preview + presets ── */}
+        <div style={{flex:1, minWidth:0, display:'flex', flexDirection:'column', gap:10}}>
 
         {/* ── Preview ── */}
         <div className="card">
@@ -671,10 +797,7 @@ function App() {
               </div>
               <div style={{display:'flex',gap:5,alignItems:'center'}}>
                 {showImg && imgSrc && (
-                  <>
-                    <button className="ic-btn danger" onClick={clearImage} title="Remove image"><Ic.trash/></button>
-                    <button className="ic-btn" onClick={exportJPG} title="Save as JPG"><Ic.save/></button>
-                  </>
+                  <button className="ic-btn danger" onClick={clearImage} title="Remove image"><Ic.trash/></button>
                 )}
                 <button className={`ic-btn${showSafe?' on':''}`} onClick={()=>setShowSafe(v=>!v)} title="Toggle safe area"><Ic.safe/></button>
                 {showImg && (
@@ -689,12 +812,15 @@ function App() {
               </div>
             </div>
 
-            {/* preview area */}
+            {/* preview area + info panel */}
+            <div style={{display:'flex', gap:14, alignItems:'flex-start'}}>
             <div
               className="preview-area"
-              onDrop={showImg ? onFileDrop : undefined}
-              onDragOver={showImg ? onFileDragOver : undefined}
-              onDragLeave={showImg ? onFileDragLeave : undefined}
+              style={{flex:1}}
+              onDrop={onFileDrop}
+              onDragOver={onFileDragOver}
+              onDragEnter={onFileDragEnter}
+              onDragLeave={onFileDragLeave}
             >
               {fileDrag && <div className="drop-overlay"><Ic.drop/></div>}
 
@@ -703,9 +829,8 @@ function App() {
                 {/* image canvas */}
                 <div
                   className={`pv-canvas${showImg&&imgSrc?' has-img':''}${panning?' panning':''}`}
-                  style={{position:'absolute',inset:0,overflow:'hidden',borderRadius:1}}
+                  style={{position:'absolute',inset:0}}
                   onMouseDown={onCanvasMouseDown}
-                  onWheel={onWheel}
                 >
                   {showImg && imgSrc && (
                     <img
@@ -714,7 +839,6 @@ function App() {
                       alt=""
                       className="pv-img"
                       style={{
-                        transform:`translate(calc(-50% + ${imgOff.x}px), calc(-50% + ${imgOff.y}px)) scale(${imgScale})`,
                         pointerEvents:'none', userSelect:'none',
                         maxWidth:'none', maxHeight:'none',
                       }}
@@ -739,7 +863,7 @@ function App() {
                           <rect
                             x={inX} y={inY}
                             width={pvW-inX*2} height={pvH-inY*2}
-                            fill="none" stroke={sa.color} strokeWidth="1"
+                            fill="none" stroke={sa.color} strokeWidth="0.5"
                             strokeDasharray={sa.dash}
                           />
                           <text x={inX+4} y={inY+10} fill={sa.color} fontSize="8" fontWeight="700" fontFamily="monospace">{sa.label}</text>
@@ -770,107 +894,93 @@ function App() {
 
                 {/* badges */}
                 <div className="pv-badge-r">{detR||toRatio(width,height)}</div>
-                <div className="pv-badge-mp">{(inputPx/1e6).toFixed(2)} MP</div>
+
 
               </div>{/* end pv-wrap */}
 
             </div>{/* end preview-area */}
 
-            {/* zoom slider — outside preview-area so it's not clipped */}
-            {showImg && imgSrc && (
-              <div className="zoom-row" style={{marginTop:12}}>
-                <span className="zoom-label">{Math.round(imgScale*100)}%</span>
-                <input
-                  type="range" className="zoom-slider"
-                  min="0.05" max="8" step="0.01"
-                  value={imgScale}
-                  onChange={e => setImgScale(parseFloat(e.target.value))}
-                />
-                <button className="zoom-action-btn" onClick={resetImgSize} title="Natural size (1:1)">1:1</button>
-                <button className="zoom-action-btn" onClick={fitImgToFrame} title="↔ Fit">↔</button>
-              </div>
-            )}
+            </div>{/* end preview flex row */}
+
+            {/* bottom bar: source info + snap toggle */}
+            <div style={{display:'flex', alignItems:'center', gap:12, marginTop:10, flexWrap:'wrap'}}>
+              {natRatio && (
+                <div style={{display:'flex', alignItems:'center', gap:8, fontSize:11, color:'var(--t2)', fontVariantNumeric:'tabular-nums'}}>
+                  <span style={{fontWeight:700, color:'var(--t1)'}}>{natRatio}</span>
+<span>{imgNat.w}×{imgNat.h}</span>
+                  <button
+                    onClick={()=>{ setWidth(imgNat.w); setHeight(imgNat.h); setTpl(null); const r=imgNat.w/imgNat.h; let best=null,bestD=9999; for(const ar of RATIOS){const d=Math.abs(r-ar.w/ar.h);if(d<bestD){bestD=d;best=ar;}} if(best)setRatio(best); }}
+                    style={{fontSize:9, fontWeight:700, color:'var(--t2)', background:'transparent', border:'1px solid var(--border)', borderRadius:'var(--rs)', padding:'2px 7px', cursor:'pointer'}}
+                    title="Reset output to source dimensions"
+                  >↩</button>
+                </div>
+              )}
+              {showImg && imgSrc && (
+                <div style={{display:'flex', gap:6, marginLeft:'auto'}}>
+                  <button className="zoom-action-btn" title="Snap top/bottom — drag left/right"
+                    style={{borderColor:snapMode==='h'?'var(--t1)':'var(--border)', color:snapMode==='h'?'var(--t1)':'var(--t3)', fontWeight:snapMode==='h'?800:600, filter:'grayscale(1)'}}
+                    onClick={()=>{ setSnapMode('h'); setImgOff({x:0,y:0}); }}>↕🔒</button>
+                  <button className="zoom-action-btn" title="Snap left/right — drag top/bottom"
+                    style={{borderColor:snapMode==='v'?'var(--t1)':'var(--border)', color:snapMode==='v'?'var(--t1)':'var(--t3)', fontWeight:snapMode==='v'?800:600, filter:'grayscale(1)'}}
+                    onClick={()=>{ setSnapMode('v'); setImgOff({x:0,y:0}); }}>↔🔒</button>
+                </div>
+              )}
+            </div>
           </div>{/* end card-inner */}
         </div>{/* end card */}
 
-        {/* ── Controls: ratio + input ── */}
-        <div style={{display:'grid', gridTemplateColumns:'1fr auto', gap:12, alignItems:'start'}}>
-          <div className="card">
-            <div className="card-inner">
-              <div className="ratio-grid">
-                {RATIOS.map(ar2 => (
-                  <RatioChip key={ar2.label} ar={ar2} active={ratio.label===ar2.label} onClick={()=>setRatio(ar2)}/>
-                ))}
-              </div>
-            </div>
-          </div>
-          <div className="card">
-            <div className="card-inner" style={{padding:'14px 16px'}}>
-              <div className="input-row">
+        {/* ── Pixel input ── */}
+        <div className="card">
+          <div className="card-inner" style={{padding:'12px 16px'}}>
+            <div style={{display:'flex', alignItems:'center', gap:8}}>
+              <div className="input-row" style={{flex:1}}>
                 <div className="input-grp drag-input-wrap">
                   <div className="input-icon"><Ic.width/></div>
                   <input type="number" value={width||''} placeholder="1920"
                     onChange={e=>handleW(e.target.value)}
-                    className={locked==='h'?'computed':''}
                     {...dragW}
                   />
                 </div>
-                <button className={`lock-btn${locked==='h'?' locked':''}`}
-                  onClick={()=>setLocked(l=>l==='w'?'h':'w')}>
-                  {locked==='w' ? <Ic.unlock/> : <Ic.lock/>}
+                <button className={`lock-btn${linked?' locked':''}`}
+                  title={linked ? 'Aspect ratio locked' : 'Aspect ratio free'}
+                  onClick={()=>setLinked(l=>!l)}>
+                  {linked ? <Ic.lock/> : <Ic.unlock/>}
                 </button>
                 <div className="input-grp drag-input-wrap">
                   <div className="input-icon"><Ic.height/></div>
                   <input type="number" value={height||''} placeholder="1080"
                     onChange={e=>handleH(e.target.value)}
-                    className={locked==='w'?'computed':''}
                     {...dragH}
                   />
                 </div>
-              </div>{/* end input-row */}
-              <div className="ratio-readout" style={{marginTop:8}}>
-                {detR||toRatio(width,height)} &nbsp;·&nbsp; {(inputPx/1e6).toFixed(2)} MP
               </div>
-            </div>
-          </div>
-        </div>
-
-        {/* ── Templates ── */}
-        <div className="card">
-          <div className="card-inner">
-            <div style={{display:'flex', alignItems:'center', gap:6, marginBottom:10}}>
-              <div className="cat-tabs">
-                {cats.map(c => {
-                  const Icon = CAT_ICONS[c];
+              <div style={{display:'flex', alignItems:'center', gap:4, color:'var(--t3)', fontSize:11, fontVariantNumeric:'tabular-nums', whiteSpace:'nowrap'}}>
+                <span>{detR||toRatio(width,height)}</span>
+              </div>
+              <div style={{display:'flex', gap:4, flexShrink:0}}>
+                {[{fmt:'jpg',bpp:0.08},{fmt:'png',bpp:0.5}].map(({fmt,bpp})=>{
+                  const bytes=inputPx*bpp;
+                  const sz=bytes>=1048576?(bytes/1048576).toFixed(1)+' MB':(bytes/1024).toFixed(0)+' KB';
                   return (
-                    <button key={c} className={`cat-tab${cat===c?' active':''}`}
-                      onClick={()=>setCat(c)} title={c}>
-                      <Icon/>
+                    <button key={fmt} className="zoom-action-btn"
+                      title={`Save as ${fmt.toUpperCase()} (~${sz})`}
+                      onClick={()=>exportImg(fmt)}
+                      style={{textTransform:'uppercase', fontSize:10, fontWeight:700}}>
+                      {fmt}
                     </button>
                   );
                 })}
               </div>
-              <span style={{fontSize:10,color:'var(--t3)',fontWeight:600}}>{filtTpls.length}</span>
-            </div>
-            <div className="tpl-grid">
-              {filtTpls.map(t2 => {
-                const CatIcon = CAT_ICONS[t2.cat];
-                return (
-                  <div key={t2.name} className={`tpl-item${tpl===t2.name?' active':''}`} onClick={()=>applyTpl(t2)}>
-                    <div className="tpl-left">
-                      <CatIcon/>
-                      <span className="tpl-name">{t2.name}</span>
-                    </div>
-                    <span className="tpl-size">{t2.w}×{t2.h}</span>
-                  </div>
-                );
-              })}
             </div>
           </div>
         </div>
 
+
+
+        </div>{/* end right column */}
       </div>
     </div>
+
   );
 }
 
