@@ -58,14 +58,6 @@ button { font-family: inherit; cursor: pointer; }
 
 /* ── Card ── */
 .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r); }
-.save-btn {
-  flex:1; padding: 6px 0; font-size: 11px; font-weight: 700; letter-spacing: 0.06em;
-  text-transform: uppercase; cursor: pointer; border-radius: var(--rs);
-  background: transparent; color: var(--t2);
-  border: 1px solid var(--border);
-  transition: background 0.15s, color 0.15s;
-}
-.save-btn:hover { background: var(--t1); color: var(--surface); border-color: var(--t1); }
 .card-inner { padding: 16px 18px; }
 .card-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
 
@@ -148,40 +140,6 @@ button { font-family: inherit; cursor: pointer; }
   padding: 3px 9px; border-radius: 99px; white-space: nowrap; z-index: 5;
   pointer-events: none;
 }
-.pv-badge-mp {
-  position: absolute; top: 8px; right: 8px;
-  background: var(--surface); border: 1px solid var(--border);
-  color: var(--t3); font-size: 10px; font-weight: 600;
-  padding: 2px 8px; border-radius: 99px; white-space: nowrap; z-index: 5;
-  pointer-events: none;
-}
-/* zoom hint */
-.zoom-hint {
-  position: absolute; bottom: 8px; left: 8px;
-  font-size: 9px; font-weight: 600; color: var(--t3);
-  pointer-events: none; z-index: 5;
-  opacity: 0; transition: opacity 0.2s;
-}
-.pv-canvas.has-img.panning ~ .zoom-hint { opacity: 1; }
-
-/* zoom slider row */
-.zoom-row {
-  display: flex; align-items: center; gap: 10px;
-  padding: 10px 0 0;
-}
-.zoom-label { font-size: 10px; font-weight: 700; color: var(--t3); width: 36px; text-align: right; font-variant-numeric: tabular-nums; }
-.zoom-slider {
-  flex: 1; -webkit-appearance: none; appearance: none;
-  height: 3px; border-radius: 99px;
-  background: var(--border); outline: none; cursor: pointer;
-}
-.zoom-slider::-webkit-slider-thumb {
-  -webkit-appearance: none; width: 14px; height: 14px;
-  border-radius: 50%; background: var(--t1);
-  border: 2px solid var(--surface); cursor: grab;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.2);
-}
-.zoom-slider::-webkit-slider-thumb:active { cursor: grabbing; }
 .zoom-action-btn {
   font-size: 10px; font-weight: 700; color: var(--t3);
   border: 1px solid var(--border); border-radius: var(--rs);
@@ -295,10 +253,10 @@ const Ic = {
   upload:  () => <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" strokeWidth="1.4"><polyline points="3,5 6.5,1.5 10,5"/><line x1="6.5" y1="1.5" x2="6.5" y2="9"/><path d="M2 10.5h9"/></svg>,
   drop:    () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="3" y="3" width="18" height="18" rx="3" strokeDasharray="3 2"/><polyline points="8,11 12,7 16,11"/><line x1="12" y1="7" x2="12" y2="16"/></svg>,
   safe:    () => <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.4"><rect x="1" y="1" width="12" height="12" rx="1"/><rect x="3" y="3" width="8" height="8" rx="0.5" strokeDasharray="2 1"/></svg>,
-  save:    () => <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.4"><path d="M2 12h10"/><polyline points="5,9 7,12 9,9"/><line x1="7" y1="2" x2="7" y2="12"/></svg>,
   moon:    () => <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" strokeWidth="1.4"><path d="M10.5 7.5A5 5 0 0 1 5.5 2.5a5 5 0 1 0 5 5z"/></svg>,
   sun:     () => <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" strokeWidth="1.4"><circle cx="6.5" cy="6.5" r="2.5"/><line x1="6.5" y1="1" x2="6.5" y2="2.5"/><line x1="6.5" y1="10.5" x2="6.5" y2="12"/><line x1="1" y1="6.5" x2="2.5" y2="6.5"/><line x1="10.5" y1="6.5" x2="12" y2="6.5"/><line x1="2.9" y1="2.9" x2="3.9" y2="3.9"/><line x1="9.1" y1="9.1" x2="10.1" y2="10.1"/><line x1="9.1" y1="2.9" x2="10.1" y2="3.9"/><line x1="2.9" y1="9.1" x2="3.9" y2="10.1"/></svg>,
   trash:   () => <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" strokeWidth="1.4"><polyline points="2,3 11,3"/><path d="M4 3V2h5v1"/><rect x="3" y="3" width="7" height="8" rx="1"/><line x1="5" y1="5.5" x2="5" y2="9"/><line x1="8" y1="5.5" x2="8" y2="9"/></svg>,
+  rotate:  () => <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" strokeWidth="1.4"><path d="M2 4.5A4.5 4.5 0 0 1 10.5 6.5"/><polyline points="8.5,2 10.5,4.5 8,5.5"/><path d="M11 8.5A4.5 4.5 0 0 1 2.5 6.5"/><polyline points="4.5,11 2.5,8.5 5,7.5"/></svg>,
   catAll:     () => <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" strokeWidth="1.4"><rect x="1" y="1" width="4.5" height="4.5" rx="1"/><rect x="7.5" y="1" width="4.5" height="4.5" rx="1"/><rect x="1" y="7.5" width="4.5" height="4.5" rx="1"/><rect x="7.5" y="7.5" width="4.5" height="4.5" rx="1"/></svg>,
   catDisplay: () => <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" strokeWidth="1.4"><rect x="1" y="2" width="11" height="7" rx="1.5"/><line x1="4.5" y1="11" x2="8.5" y2="11"/><line x1="6.5" y1="9" x2="6.5" y2="11"/></svg>,
   catVideo:   () => <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinejoin="round"><rect x="1" y="3" width="7.5" height="7" rx="1.5"/><polyline points="8.5,5 12,3.5 12,9.5 8.5,8"/></svg>,
@@ -338,8 +296,8 @@ const TEMPLATES = [
   { name:'4K UHD',                 w:3840,  h:2160,  cat:'display' },
   { name:'5K',                     w:5120,  h:2880,  cat:'display' },
   { name:'8K UHD',                 w:7680,  h:4320,  cat:'display' },
-  { name:'UWQHD (3440×1440)',      w:3440,  h:1440,  cat:'display' },
-  { name:'UW5K (5120×2160)',       w:5120,  h:2160,  cat:'display' },
+  { name:'UWQHD',                   w:3440,  h:1440,  cat:'display' },
+  { name:'UW5K',                    w:5120,  h:2160,  cat:'display' },
   { name:'MacBook Air 13"',        w:2560,  h:1664,  cat:'display' },
   { name:'MacBook Pro 14"',        w:3024,  h:1964,  cat:'display' },
   { name:'MacBook Pro 16"',        w:3456,  h:2234,  cat:'display' },
@@ -497,12 +455,6 @@ function App() {
   const imgNatRef  = useRef({w:0, h:0});   // mirror of imgNat for rAF
   const panningRef = useRef(false);
 
-  // Compute cover/fit scales given current pvW/pvH and natural image size
-  const getCoverScale = useCallback((nw, nh, pW, pH) => {
-    if (!nw || !nh) return 1;
-    return Math.max(pW / nw, pH / nh);
-  }, []);
-
   // Apply dark class to body
   useEffect(() => {
     document.body.classList.toggle('dark', dark);
@@ -645,16 +597,9 @@ function App() {
   const pvH = Math.max(MAX_H, 32);
   const pvW = Math.max(Math.min(pvH * arNum, MAX_W), 32);
 
-  // h-snap = fit height → overflow left/right → drag X
-  // v-snap = fit width  → overflow top/bottom → drag Y
-  const imgScale = imgNat.w
-    ? (snapMode === 'h' ? pvH / imgNat.h : pvW / imgNat.w)
-    : 1;
-
   const inputPx  = (width||0)*(height||0);
   // Image natural size ratio
   const natRatio = imgNat.w && imgNat.h ? toRatio(imgNat.w, imgNat.h) : null;
-  const natMp    = imgNat.w && imgNat.h ? ((imgNat.w * imgNat.h)/1e6).toFixed(2) : null;
   const detR     = detectRatio(width, height);
   const cats     = ['all','display','video','social','web','mobile','print'];
   // Draggable number input: 5px mouse movement = 1px value change
@@ -739,6 +684,16 @@ function App() {
 
   const clearImage = () => { setImgSrc(null); setImgNat({w:0,h:0}); setImgOff({x:0,y:0}); if(fileRef.current) fileRef.current.value=''; };
 
+  const rotateAspect = () => {
+    const newW = height, newH = width;
+    setWidth(newW); setHeight(newH);
+    const r = newW / newH;
+    let best = null, bestD = 9999;
+    for (const ar of RATIOS) { const d = Math.abs(r - ar.w/ar.h); if(d<bestD){bestD=d;best=ar;} }
+    if (best) setRatio(best);
+    setTpl(null);
+  };
+
   return (
     <div>
       {/* ── Topbar ── */}
@@ -755,9 +710,9 @@ function App() {
         <div style={{display:'flex', flexDirection:'column', gap:10, width:220, flexShrink:0}}>
           <div className="card">
             <div className="card-inner">
-              {[{svg:<svg width="16" height="10" viewBox="0 0 16 10" fill="none" stroke="currentColor" strokeWidth="1.4"><rect x="0.7" y="0.7" width="14.6" height="8.6" rx="1"/></svg>, list: RATIOS.filter(r=>r.w>r.h)},
-                {svg:<svg width="10" height="16" viewBox="0 0 10 16" fill="none" stroke="currentColor" strokeWidth="1.4"><rect x="0.7" y="0.7" width="8.6" height="14.6" rx="1"/></svg>, list: RATIOS.filter(r=>r.w<r.h)},
-                {svg:<svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.4"><rect x="0.7" y="0.7" width="10.6" height="10.6" rx="1"/></svg>, list: RATIOS.filter(r=>r.w===r.h)}
+              {[
+                {svg:<svg width="16" height="10" viewBox="0 0 16 10" fill="none" stroke="currentColor" strokeWidth="1.4"><rect x="0.7" y="0.7" width="14.6" height="8.6" rx="1"/></svg>, list: RATIOS.filter(r=>r.w>r.h)},
+                {svg:<svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.4"><rect x="0.7" y="0.7" width="10.6" height="10.6" rx="1"/></svg>, list: RATIOS.filter(r=>r.w===r.h)},
               ].map((group,i)=>(
                 group.list.length ? (
                   <div key={i} style={{marginBottom:8}}>
@@ -770,43 +725,16 @@ function App() {
                   </div>
                 ) : null
               ))}
+              <button
+                className="ic-btn"
+                style={{width:'100%', marginTop:4, gap:6, justifyContent:'center'}}
+                onClick={rotateAspect}
+                title="向きを90°回転">
+                <Ic.rotate/>
+                <span style={{fontSize:10, fontWeight:700}}>90° 回転</span>
+              </button>
             </div>
           </div>
-
-          {/* ── Presets (collapsible, scrollable) ── */}
-          <details className="card" style={{cursor:'default'}}>
-            <summary style={{padding:'10px 14px',fontSize:10,fontWeight:700,color:'var(--t3)',letterSpacing:'0.05em',cursor:'pointer',listStyle:'none',display:'flex',alignItems:'center',gap:6}}>
-              <span style={{flex:1}}>PRESETS</span>
-              <span style={{fontSize:9,fontVariantNumeric:'tabular-nums'}}>{filtTpls.length}</span>
-            </summary>
-            <div style={{borderTop:'1px solid var(--border)', padding:'8px 10px 4px'}}>
-              <div style={{display:'flex', gap:4, marginBottom:6, flexWrap:'wrap'}}>
-                {cats.map(c => {
-                  const Icon = CAT_ICONS[c];
-                  return (
-                    <button key={c} className={`cat-tab${cat===c?' active':''}`}
-                      onClick={()=>setCat(c)} title={c}>
-                      <Icon/>
-                    </button>
-                  );
-                })}
-              </div>
-              <div style={{maxHeight:240, overflowY:'auto', display:'flex', flexDirection:'column', gap:1}}>
-                {filtTpls.map(t2 => {
-                  const CatIcon = CAT_ICONS[t2.cat];
-                  return (
-                    <div key={t2.name} className={`tpl-item${tpl===t2.name?' active':''}`} onClick={()=>applyTpl(t2)}>
-                      <div className="tpl-left">
-                        <CatIcon/>
-                        <span className="tpl-name">{t2.name}</span>
-                      </div>
-                      <span className="tpl-size">{t2.w}×{t2.h}</span>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          </details>
         </div>
 
         {/* ── Right column: preview + presets ── */}
@@ -998,7 +926,40 @@ function App() {
           </div>
         </div>
 
-
+        {/* ── Presets ── */}
+        <div className="card">
+          <div style={{padding:'10px 14px 6px', display:'flex', alignItems:'center', justifyContent:'space-between'}}>
+            <span style={{fontSize:10,fontWeight:700,color:'var(--t3)',letterSpacing:'0.05em'}}>PRESETS</span>
+            <span style={{fontSize:9,color:'var(--t3)',fontVariantNumeric:'tabular-nums'}}>{filtTpls.length}</span>
+          </div>
+          <div style={{padding:'0 10px 8px'}}>
+            <div style={{display:'flex', gap:4, marginBottom:6, flexWrap:'wrap'}}>
+              {cats.map(c => {
+                const Icon = CAT_ICONS[c];
+                return (
+                  <button key={c} className={`cat-tab${cat===c?' active':''}`}
+                    onClick={()=>setCat(c)} title={c}>
+                    <Icon/>
+                  </button>
+                );
+              })}
+            </div>
+            <div style={{display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(200px, 1fr))', gap:2}}>
+              {filtTpls.map(t2 => {
+                const CatIcon = CAT_ICONS[t2.cat];
+                return (
+                  <div key={t2.name} className={`tpl-item${tpl===t2.name?' active':''}`} onClick={()=>applyTpl(t2)}>
+                    <div className="tpl-left">
+                      <CatIcon/>
+                      <span className="tpl-name">{t2.name}</span>
+                    </div>
+                    <span className="tpl-size">{t2.w}×{t2.h}</span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
 
         </div>{/* end right column */}
       </div>
