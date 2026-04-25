@@ -68,7 +68,7 @@ button { font-family: inherit; cursor: pointer; }
   display: flex; align-items: center; justify-content: center;
   height: 480px;
   flex-shrink: 0; flex:1;
-  overflow: hidden;
+  overflow: visible;
 }
 .pv-wrap {
   position: relative; flex-shrink: 0;
@@ -475,7 +475,7 @@ function sampleColor(imgEl, px, py) {
 }
 
 // ── K-means++ palette extractor (mode-aware, returns [{hex,x,y}]) ──────────
-function extractPaletteWithPositions(imgEl, mode) {
+function extractPaletteWithPositions(imgEl, mode, cropNorm) {
   const MAX = 160, K_POOL = 20;
   const outK = mode === 'TRITONE' ? 3 : 5;
   const scale = Math.min(MAX / imgEl.naturalWidth, MAX / imgEl.naturalHeight, 1);
@@ -488,8 +488,10 @@ function extractPaletteWithPositions(imgEl, mode) {
   const pixels = [];
   for (let y = 0; y < sh; y++) {
     for (let x = 0; x < sw; x++) {
+      const nx = x / sw, ny = y / sh;
+      if (cropNorm && (nx < cropNorm.x || nx > cropNorm.x + cropNorm.w || ny < cropNorm.y || ny > cropNorm.y + cropNorm.h)) continue;
       const i = (y * sw + x) * 4;
-      if (data[i + 3] > 128) pixels.push({ r: data[i], g: data[i+1], b: data[i+2], px: x / sw, py: y / sh });
+      if (data[i + 3] > 128) pixels.push({ r: data[i], g: data[i+1], b: data[i+2], px: nx, py: ny });
     }
   }
   if (pixels.length < K_POOL) return null;
@@ -919,9 +921,24 @@ function App() {
     if (fileRef.current) fileRef.current.value = '';
   };
 
+  // Returns visible portion of the natural image (0-1) currently shown in the frame
+  const getVisibleCropNorm = () => {
+    if (!imgNatRef.current.w || !pvWrapRef.current) return null;
+    const nat = imgNatRef.current, off = imgOffRef.current, sm = snapModeRef.current;
+    const { width: pw, height: ph } = pvWrapRef.current.getBoundingClientRect();
+    if (!pw || !ph) return null;
+    const sc = sm === 'h' ? ph / nat.h : pw / nat.w;
+    const x  = Math.max(0, 0.5 - (pw / 2 + off.x) / (nat.w * sc));
+    const y  = Math.max(0, 0.5 - (ph / 2 + off.y) / (nat.h * sc));
+    const x1 = Math.min(1, 0.5 + (pw / 2 - off.x) / (nat.w * sc));
+    const y1 = Math.min(1, 0.5 + (ph / 2 - off.y) / (nat.h * sc));
+    return { x, y, w: Math.max(0, x1 - x), h: Math.max(0, y1 - y) };
+  };
+
   const runPaletteWithMode = mode => {
     if (!imgRef.current || !imgNatRef.current.w) return;
-    const result = extractPaletteWithPositions(imgRef.current, mode);
+    const crop = getVisibleCropNorm();
+    const result = extractPaletteWithPositions(imgRef.current, mode, crop);
     if (result) { setPickerData(result); initialPickerRef.current = result.map(p => ({...p})); }
   };
 
@@ -944,7 +961,14 @@ function App() {
     const pw = pvWrapRef.current ? pvWrapRef.current.getBoundingClientRect().width  : pvW;
     const ph = pvWrapRef.current ? pvWrapRef.current.getBoundingClientRect().height : pvH;
     const nat = imgNatRef.current;
-    const sc  = snapModeRef.current === 'h' ? ph / nat.h : pw / nat.w;
+    const sm  = snapModeRef.current;
+    const sc  = sm === 'h' ? ph / nat.h : pw / nat.w;
+    // Clamp drag to the currently visible image area within the frame
+    const off = imgOffRef.current;
+    const vx0 = Math.max(0, 0.5 - (pw / 2 + off.x) / (nat.w * sc));
+    const vx1 = Math.min(1, 0.5 + (pw / 2 - off.x) / (nat.w * sc));
+    const vy0 = Math.max(0, 0.5 - (ph / 2 + off.y) / (nat.h * sc));
+    const vy1 = Math.min(1, 0.5 + (ph / 2 - off.y) / (nat.h * sc));
     let prevMx = e.clientX, prevMy = e.clientY;
     const onMove = ev => {
       const dx = ev.clientX - prevMx, dy = ev.clientY - prevMy;
@@ -953,8 +977,8 @@ function App() {
         if (!prev) return prev;
         return prev.map((p, i) => {
           if (i !== idx) return p;
-          const newX = Math.max(0, Math.min(1, p.x + dx / (nat.w * sc)));
-          const newY = Math.max(0, Math.min(1, p.y + dy / (nat.h * sc)));
+          const newX = Math.max(vx0, Math.min(vx1, p.x + dx / (nat.w * sc)));
+          const newY = Math.max(vy0, Math.min(vy1, p.y + dy / (nat.h * sc)));
           return { x: newX, y: newY, hex: sampleColor(imgRef.current, newX, newY) };
         });
       });
