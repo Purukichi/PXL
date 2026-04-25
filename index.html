@@ -109,30 +109,6 @@ button { font-family: inherit; cursor: pointer; }
   display: flex; align-items: center; justify-content: center; z-index: 10;
 }
 
-/* dimension annotations */
-.ann-h {
-  position: absolute; left: 0; right: 0; top: -22px;
-  display: flex; align-items: center; pointer-events: none;
-}
-.ann-v {
-  position: absolute; top: 0; bottom: 0; right: -26px;
-  display: flex; flex-direction: column; align-items: center; pointer-events: none;
-}
-.ann-line { background: var(--t3); }
-.ann-h .ann-line { flex: 1; height: 1px; position: relative; }
-.ann-v .ann-line { flex: 1; width: 1px; position: relative; }
-.ann-cap { font-size: 7px; color: var(--t3); line-height: 1; }
-.ann-val-h {
-  position: absolute; left: 50%; top: -8px; transform: translateX(-50%);
-  font-size: 10px; font-weight: 700; color: var(--t2); white-space: nowrap;
-  background: var(--bg); padding: 0 4px; font-variant-numeric: tabular-nums;
-}
-.ann-val-v {
-  position: absolute; top: 50%; left: -35px;
-  transform: translateY(-50%) rotate(90deg); transform-origin: center;
-  font-size: 10px; font-weight: 700; color: var(--t2); white-space: nowrap;
-  background: var(--bg); padding: 0 3px; font-variant-numeric: tabular-nums;
-}
 .pv-badge-r {
   position: absolute; top: 8px; left: 50%; transform: translateX(-50%);
   background: var(--t1); color: var(--surface);
@@ -269,7 +245,7 @@ const Ic = {
 
 const CAT_ICONS = {
   all: Ic.catAll, display: Ic.catDisplay, video: Ic.catVideo,
-  social: Ic.catSocial, web: Ic.catWeb, mobile: Ic.catMobile, print: Ic.catPrint,
+  social: Ic.catSocial, mobile: Ic.catMobile, print: Ic.catPrint,
   music: Ic.catMusic,
 };
 
@@ -305,7 +281,9 @@ const TEMPLATES = [
   { name:'MacBook Pro 16"',        w:3456,  h:2234,  cat:'display' },
   { name:'Studio Display',         w:5120,  h:2880,  cat:'display' },
   { name:'Pro Display XDR',        w:6016,  h:3384,  cat:'display' },
-  { name:'YouTube Thumbnail',      w:1280,  h:720,   cat:'video'   },
+  { name:'YouTube Thumbnail 4K',   w:3840,  h:2160,  cat:'video'   },
+  { name:'YouTube Thumbnail FHD',  w:1920,  h:1080,  cat:'video'   },
+  { name:'YouTube Thumbnail HD',   w:1280,  h:720,   cat:'video'   },
   { name:'YouTube Shorts',         w:1080,  h:1920,  cat:'video'   },
   { name:'TikTok / Reels',         w:1080,  h:1920,  cat:'video'   },
   { name:'Twitter/X Video',        w:1280,  h:720,   cat:'video'   },
@@ -329,13 +307,6 @@ const TEMPLATES = [
   { name:'LinkedIn Cover',         w:1584,  h:396,   cat:'social'  },
   { name:'LinkedIn Post',          w:1200,  h:627,   cat:'social'  },
   { name:'Pinterest Pin',          w:1000,  h:1500,  cat:'social'  },
-  { name:'OGP / Open Graph',       w:1200,  h:630,   cat:'web'     },
-  { name:'Favicon 16',             w:16,    h:16,    cat:'web'     },
-  { name:'Favicon 32',             w:32,    h:32,    cat:'web'     },
-  { name:'App Icon (512)',         w:512,   h:512,   cat:'web'     },
-  { name:'Apple Touch Icon',       w:180,   h:180,   cat:'web'     },
-  { name:'Twitter Card',           w:1200,  h:628,   cat:'web'     },
-  { name:'Hero Banner (Wide)',     w:1920,  h:640,   cat:'web'     },
   { name:'iPhone 16 Pro Max',      w:1320,  h:2868,  cat:'mobile'  },
   { name:'iPhone 16 Pro',          w:1206,  h:2622,  cat:'mobile'  },
   { name:'iPhone 15 Pro',          w:1179,  h:2556,  cat:'mobile'  },
@@ -831,7 +802,7 @@ function App() {
   // Image natural size ratio
   const natRatio = imgNat.w && imgNat.h ? toRatio(imgNat.w, imgNat.h) : null;
   const detR     = detectRatio(width, height);
-  const cats     = ['all','display','video','social','web','mobile','print','music'];
+  const cats     = ['all','display','video','social','mobile','print','music'];
 
   // Draggable number input: 5px mouse movement = 1px value change
   const makeDragInput = (getValue, setValue) => ({
@@ -1298,21 +1269,6 @@ function App() {
                   );
                 })}
 
-                {/* dimension annotations */}
-                <div className="ann-h">
-                  <span className="ann-cap">◀</span>
-                  <div className="ann-line" style={{flex:1,height:1,position:'relative'}}>
-                    <span className="ann-val-h">{width} px</span>
-                  </div>
-                  <span className="ann-cap">▶</span>
-                </div>
-                <div className="ann-v">
-                  <span className="ann-cap">▲</span>
-                  <div className="ann-line" style={{flex:1,width:1,position:'relative'}}>
-                    <span className="ann-val-v">{height} px</span>
-                  </div>
-                  <span className="ann-cap">▼</span>
-                </div>
 
                 {/* badges */}
                 <div className="pv-badge-r">{detR||toRatio(width,height)}</div>
