@@ -604,6 +604,10 @@ function App() {
   const [pickerData,  setPickerData]  = useState(null);
   const [copiedColor, setCopiedColor] = useState(null);
   const [histogram, setHistogram] = useState(null);
+  const [displayHistogram, setDisplayHistogram_] = useState(null);
+  const displayHistRef = useRef(null);
+  const histAnimRef    = useRef(null);
+  const setDisplayHistogram = v => { displayHistRef.current = v; setDisplayHistogram_(v); };
   const [showFmtMenu, setShowFmtMenu] = useState(false);
   const [showPickerDots, setShowPickerDots] = useState(true);
   // Theme
@@ -696,6 +700,29 @@ function App() {
     if (!imgSrc || !imgNat.w) return;
     scheduleHistogram();
   }, [pvW, pvH, snapMode, imgSrc, imgNat.w, imgNat.h]); // eslint-disable-line
+
+  // Animate histogram toward new target whenever it changes
+  useEffect(() => {
+    if (!histogram) { if (histAnimRef.current) cancelAnimationFrame(histAnimRef.current); setDisplayHistogram(null); return; }
+    const EMPTY = { r: new Array(64).fill(0), g: new Array(64).fill(0), b: new Array(64).fill(0), lum: new Array(64).fill(0) };
+    const from = displayHistRef.current ? { r:[...displayHistRef.current.r], g:[...displayHistRef.current.g], b:[...displayHistRef.current.b], lum:[...displayHistRef.current.lum] } : EMPTY;
+    const to = histogram;
+    if (histAnimRef.current) cancelAnimationFrame(histAnimRef.current);
+    const t0 = performance.now(), dur = 500;
+    const ease = t => t < 0.5 ? 2*t*t : -1 + (4-2*t)*t;
+    const step = now => {
+      const p = ease(Math.min((now - t0) / dur, 1));
+      setDisplayHistogram({
+        r:   from.r.map((v,i)   => v + (to.r[i]   - v) * p),
+        g:   from.g.map((v,i)   => v + (to.g[i]   - v) * p),
+        b:   from.b.map((v,i)   => v + (to.b[i]   - v) * p),
+        lum: from.lum.map((v,i) => v + (to.lum[i] - v) * p),
+      });
+      if (p < 1) histAnimRef.current = requestAnimationFrame(step);
+    };
+    histAnimRef.current = requestAnimationFrame(step);
+    return () => { if (histAnimRef.current) cancelAnimationFrame(histAnimRef.current); };
+  }, [histogram]); // eslint-disable-line
 
   const handleW = v => { const n=parseInt(v)||0; setWidth(n); if(linked) setHeight(Math.round(n*ratio.h/ratio.w)); setTpl(null); };
   const handleH = v => { const n=parseInt(v)||0; setHeight(n); if(linked) setWidth(Math.round(n*ratio.w/ratio.h)); setTpl(null); };
@@ -791,8 +818,8 @@ function App() {
   };
 
   // Preview sizing — fit inside available area maintaining aspect ratio
-  const MAX_W = Math.max(pvAreaW - 60, 32);
-  const MAX_H = Math.max(pvAreaH - 60, 32);
+  const MAX_W = Math.max(pvAreaW - 90, 32);
+  const MAX_H = Math.max(pvAreaH - 80, 32);
   const arNum = width && height ? width / height : 1;
   const pvByH = MAX_H * arNum;
   const pvH = pvByH <= MAX_W ? MAX_H : Math.max(Math.round(MAX_W / arNum), 32);
@@ -991,9 +1018,10 @@ function App() {
           {/* ── Luminance Histogram ── */}
           <div className="card">
             <div className="card-inner" style={{padding:'12px 14px'}}>
-              {histogram ? (() => {
-                const W = 192, H = 56, N = histogram.r.length;
-                const maxVal = Math.max(...histogram.lum, ...histogram.r, ...histogram.g, ...histogram.b, 1);
+              {displayHistogram ? (() => {
+                const dh = displayHistogram;
+                const W = 192, H = 56, N = dh.r.length;
+                const maxVal = Math.max(...dh.lum, ...dh.r, ...dh.g, ...dh.b, 1);
                 const toPath = bins => {
                   const pts = bins.map((v,i)=>`${(i/N*W).toFixed(1)},${(H - v/maxVal*H*0.93).toFixed(1)}`).join(' L ');
                   return `M 0,${H} L ${pts} L ${W},${H} Z`;
@@ -1001,10 +1029,10 @@ function App() {
                 return (
                   <div>
                     <svg width="100%" height={H} viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" style={{display:'block', borderRadius:3, overflow:'hidden'}}>
-                      <path d={toPath(histogram.r)}   fill="rgba(255,70,70,0.4)"/>
-                      <path d={toPath(histogram.g)}   fill="rgba(50,190,80,0.4)"/>
-                      <path d={toPath(histogram.b)}   fill="rgba(60,120,255,0.4)"/>
-                      <path d={toPath(histogram.lum)} fill="var(--t1)" opacity="0.25"/>
+                      <path d={toPath(dh.r)}   fill="rgba(255,70,70,0.4)"/>
+                      <path d={toPath(dh.g)}   fill="rgba(50,190,80,0.4)"/>
+                      <path d={toPath(dh.b)}   fill="rgba(60,120,255,0.4)"/>
+                      <path d={toPath(dh.lum)} fill="var(--t1)" opacity="0.25"/>
                     </svg>
                     <div style={{display:'flex', justifyContent:'space-between', marginTop:5, fontSize:8, color:'var(--t3)', fontWeight:600}}>
                       <span>DARK</span>
