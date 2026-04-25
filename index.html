@@ -863,9 +863,11 @@ function App() {
                   </div>
                 );
               })() : (
-                <div style={{height:56, background:'var(--border2)', borderRadius:3, display:'flex', alignItems:'center', justifyContent:'center'}}>
-                  <span style={{fontSize:9, color:'var(--t3)'}}>画像を読み込むと表示します</span>
-                </div>
+                <svg width="100%" height="56" viewBox="0 0 192 56" preserveAspectRatio="none" style={{display:'block', borderRadius:3, color:'var(--t3)', opacity:0.2}}>
+                  {[4,10,18,28,38,46,50,48,42,34,26,20,14,8,5,4].map((h,i)=>(
+                    <rect key={i} x={i*12+1} y={56-h} width={10} height={h} fill="currentColor" rx="1"/>
+                  ))}
+                </svg>
               )}
             </div>
           </div>
@@ -908,6 +910,20 @@ function App() {
                 title="白黒プレビュー切り替え">
                 <Ic.bw/>
               </button>
+            </div>
+          </div>
+
+          {/* ── Link ── */}
+          <div className="card">
+            <div className="card-inner" style={{padding:'8px 14px'}}>
+              <a
+                href="https://x.com/Purukichi3"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="ic-btn"
+                style={{display:'flex', width:'100%', justifyContent:'center', textDecoration:'none', fontSize:12, letterSpacing:'0.06em'}}>
+                {'> ⇀ <'}
+              </a>
             </div>
           </div>
         </div>
