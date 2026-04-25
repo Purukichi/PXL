@@ -257,6 +257,7 @@ const Ic = {
   sun:     () => <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" strokeWidth="1.4"><circle cx="6.5" cy="6.5" r="2.5"/><line x1="6.5" y1="1" x2="6.5" y2="2.5"/><line x1="6.5" y1="10.5" x2="6.5" y2="12"/><line x1="1" y1="6.5" x2="2.5" y2="6.5"/><line x1="10.5" y1="6.5" x2="12" y2="6.5"/><line x1="2.9" y1="2.9" x2="3.9" y2="3.9"/><line x1="9.1" y1="9.1" x2="10.1" y2="10.1"/><line x1="9.1" y1="2.9" x2="10.1" y2="3.9"/><line x1="2.9" y1="9.1" x2="3.9" y2="10.1"/></svg>,
   trash:   () => <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" strokeWidth="1.4"><polyline points="2,3 11,3"/><path d="M4 3V2h5v1"/><rect x="3" y="3" width="7" height="8" rx="1"/><line x1="5" y1="5.5" x2="5" y2="9"/><line x1="8" y1="5.5" x2="8" y2="9"/></svg>,
   rotate:  () => <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" strokeWidth="1.4"><path d="M2 4.5A4.5 4.5 0 0 1 10.5 6.5"/><polyline points="8.5,2 10.5,4.5 8,5.5"/><path d="M11 8.5A4.5 4.5 0 0 1 2.5 6.5"/><polyline points="4.5,11 2.5,8.5 5,7.5"/></svg>,
+  bw:      () => <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" strokeWidth="1.3"><circle cx="6.5" cy="6.5" r="5"/><path d="M6.5 1.5 A5 5 0 0 1 6.5 11.5Z" fill="currentColor" stroke="none"/></svg>,
   catAll:     () => <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" strokeWidth="1.4"><rect x="1" y="1" width="4.5" height="4.5" rx="1"/><rect x="7.5" y="1" width="4.5" height="4.5" rx="1"/><rect x="1" y="7.5" width="4.5" height="4.5" rx="1"/><rect x="7.5" y="7.5" width="4.5" height="4.5" rx="1"/></svg>,
   catDisplay: () => <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" strokeWidth="1.4"><rect x="1" y="2" width="11" height="7" rx="1.5"/><line x1="4.5" y1="11" x2="8.5" y2="11"/><line x1="6.5" y1="9" x2="6.5" y2="11"/></svg>,
   catVideo:   () => <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinejoin="round"><rect x="1" y="3" width="7.5" height="7" rx="1.5"/><polyline points="8.5,5 12,3.5 12,9.5 8.5,8"/></svg>,
@@ -381,7 +382,9 @@ const TEMPLATES = [
   { name:'YouTube Channel Art',   w:2560,  h:1440,  cat:'music'   },
   { name:'YouTube Profile Icon',  w:800,   h:800,   cat:'music'   },
   { name:'YouTube Home Thumb',    w:1280,  h:720,   cat:'music'   },
-  { name:'Album Art',             w:3000,  h:3000,  cat:'music'   },
+  { name:'Album Art (Standard)',   w:3000,  h:3000,  cat:'music'   },
+  { name:'Album Art (Hi-Res)',     w:4000,  h:4000,  cat:'music'   },
+  { name:'Album Art (Ultra)',      w:6000,  h:6000,  cat:'music'   },
 ];
 
 // ── Safe area presets ──────────────────────────────────────────────────────
@@ -533,8 +536,6 @@ function App() {
   // Overlays
   const [showSafe, setShowSafe]= useState(false);
   const [showBW,   setShowBW]  = useState(false);
-  const [showGrain, setShowGrain] = useState(false);
-  const [grainSize, setGrainSize] = useState(3);
   const [palette,   setPalette]   = useState(null);
   const [copiedColor, setCopiedColor] = useState(null);
   const [histogram, setHistogram] = useState(null);
@@ -551,7 +552,6 @@ function App() {
   const snapModeRef = useRef('h');          // mirror of snapMode for rAF
   const imgNatRef  = useRef({w:0, h:0});   // mirror of imgNat for rAF
   const panningRef = useRef(false);
-  const grainCanvasRef = useRef();
 
   // Apply dark class to body
   useEffect(() => {
@@ -699,26 +699,6 @@ function App() {
   const detR     = detectRatio(width, height);
   const cats     = ['all','display','video','social','web','mobile','print','music'];
 
-  // Grain canvas redraw
-  useEffect(() => {
-    const canvas = grainCanvasRef.current;
-    if (!canvas) return;
-    canvas.width = pvW;
-    canvas.height = pvH;
-    const ctx = canvas.getContext('2d');
-    ctx.clearRect(0, 0, pvW, pvH);
-    if (!showGrain) return;
-    const ps = Math.max(1, grainSize);
-    for (let y = 0; y < pvH; y += ps) {
-      for (let x = 0; x < pvW; x += ps) {
-        const lum = Math.floor(Math.random() * 256);
-        const alpha = 0.08 + Math.random() * 0.22;
-        ctx.fillStyle = `rgba(${lum},${lum},${lum},${alpha})`;
-        ctx.fillRect(x, y, ps, ps);
-      }
-    }
-  }, [showGrain, grainSize, pvW, pvH]);
-
   // Draggable number input: 5px mouse movement = 1px value change
   const makeDragInput = (getValue, setValue) => ({
     onMouseDown: e => {
@@ -782,21 +762,6 @@ function App() {
         ctx.strokeRect(inX, inY, cW - inX*2, cH - inY*2);
       });
       ctx.setLineDash([]);
-    }
-    // Grain effect
-    if (showGrain) {
-      const ps = Math.max(1, grainSize);
-      ctx.save();
-      ctx.globalCompositeOperation = 'overlay';
-      for (let gy = 0; gy < cH; gy += ps) {
-        for (let gx = 0; gx < cW; gx += ps) {
-          const lum = Math.floor(Math.random() * 256);
-          const alpha = 0.08 + Math.random() * 0.22;
-          ctx.fillStyle = `rgba(${lum},${lum},${lum},${alpha})`;
-          ctx.fillRect(gx, gy, ps, ps);
-        }
-      }
-      ctx.restore();
     }
     // Frame border
     ctx.strokeStyle = dark ? '#e8e6df' : '#1e1d1b';
@@ -871,7 +836,6 @@ function App() {
           {/* ── Luminance Histogram ── */}
           <div className="card">
             <div className="card-inner" style={{padding:'12px 14px'}}>
-              <div style={{fontSize:10,fontWeight:700,color:'var(--t3)',letterSpacing:'0.05em',marginBottom:8}}>HISTOGRAM</div>
               {histogram ? (() => {
                 const W = 192, H = 56, N = histogram.r.length;
                 const maxVal = Math.max(...histogram.lum, ...histogram.r, ...histogram.g, ...histogram.b, 1);
@@ -906,54 +870,9 @@ function App() {
             </div>
           </div>
 
-          {/* ── B&W Toggle ── */}
-          <div className="card">
-            <div className="card-inner" style={{padding:'10px 14px'}}>
-              <div style={{display:'flex', alignItems:'center', justifyContent:'space-between'}}>
-                <span style={{fontSize:10,fontWeight:700,color:'var(--t3)',letterSpacing:'0.05em'}}>PREVIEW</span>
-                <button
-                  className={`ic-btn${showBW?' on':''}`}
-                  style={{fontSize:10, fontWeight:700, letterSpacing:'0.05em', padding:'4px 10px', gap:5}}
-                  onClick={()=>setShowBW(v=>!v)}
-                  title="白黒プレビュー切り替え">
-                  B/W
-                </button>
-              </div>
-            </div>
-          </div>
-
-          {/* ── Grain Effect ── */}
-          <div className="card">
-            <div className="card-inner" style={{padding:'10px 14px'}}>
-              <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom: showGrain ? 10 : 0}}>
-                <span style={{fontSize:10,fontWeight:700,color:'var(--t3)',letterSpacing:'0.05em'}}>GRAIN</span>
-                <button
-                  className={`ic-btn${showGrain?' on':''}`}
-                  style={{fontSize:10, fontWeight:700, letterSpacing:'0.05em', padding:'4px 10px'}}
-                  onClick={()=>setShowGrain(v=>!v)}
-                  title="粒子ノイズエフェクト">
-                  ON
-                </button>
-              </div>
-              {showGrain && (
-                <div style={{display:'flex', alignItems:'center', gap:8}}>
-                  <span style={{fontSize:10, color:'var(--t3)', whiteSpace:'nowrap', fontWeight:600}}>SIZE</span>
-                  <input
-                    type="number" min="1" max="30"
-                    value={grainSize}
-                    onChange={e=>setGrainSize(Math.max(1, Math.min(30, parseInt(e.target.value)||1)))}
-                    style={{width:52, padding:'4px 6px', fontSize:13, fontWeight:700, fontFamily:'inherit', fontVariantNumeric:'tabular-nums', border:'1px solid var(--border)', borderRadius:'var(--rs)', background:'var(--bg)', color:'var(--t1)', outline:'none', MozAppearance:'textfield', WebkitAppearance:'none'}}
-                  />
-                  <span style={{fontSize:10, color:'var(--t3)'}}>px</span>
-                </div>
-              )}
-            </div>
-          </div>
-
           {/* ── Color Palette ── */}
           <div className="card">
             <div className="card-inner" style={{padding:'10px 14px'}}>
-              <div style={{fontSize:10,fontWeight:700,color:'var(--t3)',letterSpacing:'0.05em',marginBottom:8}}>PALETTE</div>
               {palette ? (
                 <div style={{display:'flex', gap:4}}>
                   {palette.map((hex, i) => (
@@ -972,8 +891,23 @@ function App() {
                   ))}
                 </div>
               ) : (
-                <div style={{fontSize:10, color:'var(--t3)', textAlign:'center', padding:'6px 0'}}>画像を読み込むと抽出します</div>
+                <div style={{height:28, display:'flex', alignItems:'center', justifyContent:'center'}}>
+                  <span style={{fontSize:9, color:'var(--t3)'}}>—</span>
+                </div>
               )}
+            </div>
+          </div>
+
+          {/* ── B&W Toggle ── */}
+          <div className="card">
+            <div className="card-inner" style={{padding:'8px 14px'}}>
+              <button
+                className={`ic-btn${showBW?' on':''}`}
+                style={{width:'100%', justifyContent:'center', gap:6}}
+                onClick={()=>setShowBW(v=>!v)}
+                title="白黒プレビュー切り替え">
+                <Ic.bw/>
+              </button>
             </div>
           </div>
         </div>
@@ -1058,11 +992,6 @@ function App() {
                     </div>
                   )}
                 </div>
-
-                {/* grain canvas overlay */}
-                {showGrain && (
-                  <canvas ref={grainCanvasRef} style={{position:'absolute',inset:0,pointerEvents:'none',zIndex:2,mixBlendMode:'overlay'}}/>
-                )}
 
                 {/* safe area SVG */}
                 {showSafe && (
