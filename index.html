@@ -638,12 +638,13 @@ function App() {
     window.addEventListener('mouseup',   onUp);
   };
 
-  // Preview sizing — height fills the container, only width adjusts with aspect ratio
+  // Preview sizing — fit inside measured container (40px padding on each axis)
   const MAX_W = Math.max(pvAreaW - 80, 80);
   const MAX_H = Math.max(pvAreaH - 80, 80);
   const arNum = width && height ? width/height : 1;
-  const pvH = Math.max(MAX_H, 32);
-  const pvW = Math.max(Math.min(pvH * arNum, MAX_W), 32);
+  let pvW = MAX_W, pvH = MAX_W / arNum;
+  if (pvH > MAX_H) { pvH = MAX_H; pvW = MAX_H * arNum; }
+  pvW = Math.max(pvW, 32); pvH = Math.max(pvH, 32);
 
   // h-snap = fit height → overflow left/right → drag X
   // v-snap = fit width  → overflow top/bottom → drag Y
