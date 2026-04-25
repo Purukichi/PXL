@@ -684,7 +684,6 @@ function App() {
 
   // ── Export (JPG or PNG) ──────────────────────────────────────────────────
   const exportImg = (fmt) => {
-    setShowFmtMenu(false);
     const cW = width, cH = height;
     const canvas = document.createElement('canvas');
     canvas.width = cW; canvas.height = cH;
@@ -733,7 +732,9 @@ function App() {
     a.href = fmt === 'jpg'
       ? canvas.toDataURL('image/jpeg', 0.93)
       : canvas.toDataURL('image/png');
+    document.body.appendChild(a);
     a.click();
+    document.body.removeChild(a);
   };
 
   const clearImage = () => { setImgSrc(null); setImgNat({w:0,h:0}); setImgOff({x:0,y:0}); if(fileRef.current) fileRef.current.value=''; };
@@ -832,6 +833,19 @@ function App() {
                 <button className={`ic-btn${showImg?' on':''}`} onClick={()=>setShowImg(v=>!v)} title="Toggle image">
                   {showImg ? <Ic.eyeOn/> : <Ic.eyeOff/>}
                 </button>
+                <div style={{width:1,height:14,background:'var(--border)',margin:'0 1px'}}/>
+                {[{fmt:'jpg',bpp:0.08},{fmt:'png',bpp:0.5}].map(({fmt,bpp})=>{
+                  const bytes=inputPx*bpp;
+                  const sz=bytes>=1048576?(bytes/1048576).toFixed(1)+' MB':(bytes/1024).toFixed(0)+' KB';
+                  return (
+                    <button key={fmt} className="ic-btn"
+                      style={{fontSize:10,fontWeight:700,letterSpacing:'0.06em',padding:'5px 8px'}}
+                      title={`~${sz}`}
+                      onClick={()=>exportImg(fmt)}>
+                      {fmt.toUpperCase()}
+                    </button>
+                  );
+                })}
               </div>
             </div>
 
@@ -981,20 +995,6 @@ function App() {
                 <span>{detR||toRatio(width,height)}</span>
               </div>
             </div>
-          </div>
-          {/* save buttons row */}
-          <div style={{display:'flex', gap:6, padding:'0 16px 12px'}}>
-            {[{fmt:'jpg',bpp:0.08},{fmt:'png',bpp:0.5}].map(({fmt,bpp})=>{
-              const bytes=inputPx*bpp;
-              const sz=bytes>=1048576?(bytes/1048576).toFixed(1)+' MB':(bytes/1024).toFixed(0)+' KB';
-              return (
-                <button key={fmt} className="save-btn"
-                  title={`~${sz}`}
-                  onClick={()=>exportImg(fmt)}>
-                  {fmt}
-                </button>
-              );
-            })}
           </div>
         </div>
 
