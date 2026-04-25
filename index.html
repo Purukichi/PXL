@@ -381,7 +381,6 @@ const TEMPLATES = [
   { name:'YouTube Channel Art',   w:2560,  h:1440,  cat:'music'   },
   { name:'YouTube Profile Icon',  w:800,   h:800,   cat:'music'   },
   { name:'YouTube Home Thumb',    w:1280,  h:720,   cat:'music'   },
-  { name:'YouTube Shorts',        w:1080,  h:1920,  cat:'music'   },
   { name:'Album Art',             w:3000,  h:3000,  cat:'music'   },
 ];
 
@@ -407,6 +406,84 @@ function detectRatio(w, h) {
     if (Math.abs(r - ar.w / ar.h) < 0.013) return ar.label;
   }
   return null;
+}
+
+// ── Luminance histogram ────────────────────────────────────────────────────
+function computeHistogram(imgEl) {
+  const MAX = 160;
+  const scale = Math.min(MAX / imgEl.naturalWidth, MAX / imgEl.naturalHeight, 1);
+  const sw = Math.max(1, Math.round(imgEl.naturalWidth * scale));
+  const sh = Math.max(1, Math.round(imgEl.naturalHeight * scale));
+  const oc = document.createElement('canvas');
+  oc.width = sw; oc.height = sh;
+  const octx = oc.getContext('2d');
+  octx.drawImage(imgEl, 0, 0, sw, sh);
+  const data = octx.getImageData(0, 0, sw, sh).data;
+  const N = 64;
+  const r = new Array(N).fill(0), g = new Array(N).fill(0);
+  const b = new Array(N).fill(0), lum = new Array(N).fill(0);
+  for (let i = 0; i < data.length; i += 4) {
+    if (data[i+3] > 0) {
+      r[Math.min(N-1, data[i] >> 2)]++;
+      g[Math.min(N-1, data[i+1] >> 2)]++;
+      b[Math.min(N-1, data[i+2] >> 2)]++;
+      const l = Math.round(0.299*data[i] + 0.587*data[i+1] + 0.114*data[i+2]);
+      lum[Math.min(N-1, l >> 2)]++;
+    }
+  }
+  return { r, g, b, lum };
+}
+
+// ── K-means++ palette extractor ───────────────────────────────────────────
+function extractPalette(imgEl, k = 5) {
+  const MAX = 80;
+  const scale = Math.min(MAX / imgEl.naturalWidth, MAX / imgEl.naturalHeight, 1);
+  const sw = Math.max(1, Math.round(imgEl.naturalWidth * scale));
+  const sh = Math.max(1, Math.round(imgEl.naturalHeight * scale));
+  const oc = document.createElement('canvas');
+  oc.width = sw; oc.height = sh;
+  const octx = oc.getContext('2d');
+  octx.drawImage(imgEl, 0, 0, sw, sh);
+  const data = octx.getImageData(0, 0, sw, sh).data;
+  const pixels = [];
+  for (let i = 0; i < data.length; i += 4) {
+    if (data[i+3] > 128) pixels.push([data[i], data[i+1], data[i+2]]);
+  }
+  if (pixels.length < k) return null;
+  // K-means++ init
+  const centers = [pixels[Math.floor(Math.random() * pixels.length)]];
+  for (let c = 1; c < k; c++) {
+    const dists = pixels.map(p => centers.reduce((mn, cn) =>
+      Math.min(mn, (p[0]-cn[0])**2 + (p[1]-cn[1])**2 + (p[2]-cn[2])**2), Infinity));
+    const total = dists.reduce((a, b) => a + b, 0);
+    let rand = Math.random() * total, idx = 0;
+    for (let i = 0; i < dists.length; i++) { rand -= dists[i]; if (rand <= 0) { idx = i; break; } }
+    centers.push(pixels[idx]);
+  }
+  // K-means iterations
+  let clusters = centers;
+  for (let iter = 0; iter < 20; iter++) {
+    const assigns = Array.from({length: k}, () => []);
+    for (const p of pixels) {
+      let bc = 0, bd = Infinity;
+      for (let c = 0; c < k; c++) {
+        const d = (p[0]-clusters[c][0])**2 + (p[1]-clusters[c][1])**2 + (p[2]-clusters[c][2])**2;
+        if (d < bd) { bd = d; bc = c; }
+      }
+      assigns[bc].push(p);
+    }
+    clusters = assigns.map((grp, c) => {
+      if (!grp.length) return clusters[c];
+      const n = grp.length;
+      return [
+        Math.round(grp.reduce((s,p)=>s+p[0],0)/n),
+        Math.round(grp.reduce((s,p)=>s+p[1],0)/n),
+        Math.round(grp.reduce((s,p)=>s+p[2],0)/n),
+      ];
+    });
+  }
+  return clusters.map(([r,g,b]) =>
+    '#'+[r,g,b].map(v=>v.toString(16).padStart(2,'0')).join(''));
 }
 
 // ── RatioChip ──────────────────────────────────────────────────────────────
@@ -456,6 +533,11 @@ function App() {
   // Overlays
   const [showSafe, setShowSafe]= useState(false);
   const [showBW,   setShowBW]  = useState(false);
+  const [showGrain, setShowGrain] = useState(false);
+  const [grainSize, setGrainSize] = useState(3);
+  const [palette,   setPalette]   = useState(null);
+  const [copiedColor, setCopiedColor] = useState(null);
+  const [histogram, setHistogram] = useState(null);
   // Theme
   const [dark,     setDark]    = useState(false);
 
@@ -469,6 +551,7 @@ function App() {
   const snapModeRef = useRef('h');          // mirror of snapMode for rAF
   const imgNatRef  = useRef({w:0, h:0});   // mirror of imgNat for rAF
   const panningRef = useRef(false);
+  const grainCanvasRef = useRef();
 
   // Apply dark class to body
   useEffect(() => {
@@ -535,6 +618,9 @@ function App() {
       let best = null, bestD = 9999;
       for (const ar of RATIOS) { const d = Math.abs(r - ar.w/ar.h); if (d < bestD) { bestD=d; best=ar; } }
       if (best) setRatio(best);
+      const pal = extractPalette(img);
+      if (pal) setPalette(pal);
+      setHistogram(computeHistogram(img));
     };
     img.src = url;
     setImgSrc(url);
@@ -612,6 +698,27 @@ function App() {
   const natRatio = imgNat.w && imgNat.h ? toRatio(imgNat.w, imgNat.h) : null;
   const detR     = detectRatio(width, height);
   const cats     = ['all','display','video','social','web','mobile','print','music'];
+
+  // Grain canvas redraw
+  useEffect(() => {
+    const canvas = grainCanvasRef.current;
+    if (!canvas) return;
+    canvas.width = pvW;
+    canvas.height = pvH;
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, pvW, pvH);
+    if (!showGrain) return;
+    const ps = Math.max(1, grainSize);
+    for (let y = 0; y < pvH; y += ps) {
+      for (let x = 0; x < pvW; x += ps) {
+        const lum = Math.floor(Math.random() * 256);
+        const alpha = 0.08 + Math.random() * 0.22;
+        ctx.fillStyle = `rgba(${lum},${lum},${lum},${alpha})`;
+        ctx.fillRect(x, y, ps, ps);
+      }
+    }
+  }, [showGrain, grainSize, pvW, pvH]);
+
   // Draggable number input: 5px mouse movement = 1px value change
   const makeDragInput = (getValue, setValue) => ({
     onMouseDown: e => {
@@ -676,6 +783,21 @@ function App() {
       });
       ctx.setLineDash([]);
     }
+    // Grain effect
+    if (showGrain) {
+      const ps = Math.max(1, grainSize);
+      ctx.save();
+      ctx.globalCompositeOperation = 'overlay';
+      for (let gy = 0; gy < cH; gy += ps) {
+        for (let gx = 0; gx < cW; gx += ps) {
+          const lum = Math.floor(Math.random() * 256);
+          const alpha = 0.08 + Math.random() * 0.22;
+          ctx.fillStyle = `rgba(${lum},${lum},${lum},${alpha})`;
+          ctx.fillRect(gx, gy, ps, ps);
+        }
+      }
+      ctx.restore();
+    }
     // Frame border
     ctx.strokeStyle = dark ? '#e8e6df' : '#1e1d1b';
     ctx.lineWidth = 1;
@@ -693,7 +815,7 @@ function App() {
     document.body.removeChild(a);
   };
 
-  const clearImage = () => { setImgSrc(null); setImgNat({w:0,h:0}); setImgOff({x:0,y:0}); if(fileRef.current) fileRef.current.value=''; };
+  const clearImage = () => { setImgSrc(null); setImgNat({w:0,h:0}); setImgOff({x:0,y:0}); setPalette(null); setCopiedColor(null); setHistogram(null); if(fileRef.current) fileRef.current.value=''; };
 
   const rotateAspect = () => {
     const newW = height, newH = width;
@@ -746,42 +868,41 @@ function App() {
               </button>
             </div>
           </div>
-          {/* ── Ratio Analyzer ── */}
+          {/* ── Luminance Histogram ── */}
           <div className="card">
             <div className="card-inner" style={{padding:'12px 14px'}}>
-              <div style={{fontSize:10,fontWeight:700,color:'var(--t3)',letterSpacing:'0.05em',marginBottom:10}}>SPECTRUM</div>
-              {(() => {
-                const minLog = Math.log(0.35), maxLog = Math.log(4.2);
-                const toPos = r => ((Math.log(Math.max(0.35, Math.min(4.2, r))) - minLog) / (maxLog - minLog)) * 100;
-                const cur = (width && height) ? width / height : 1;
-                const curPos = toPos(cur);
-                const marks = RATIOS.filter(ar => ar.w >= ar.h).concat(RATIOS.filter(ar => ar.w < ar.h));
+              <div style={{fontSize:10,fontWeight:700,color:'var(--t3)',letterSpacing:'0.05em',marginBottom:8}}>HISTOGRAM</div>
+              {histogram ? (() => {
+                const W = 192, H = 56, N = histogram.r.length;
+                const maxVal = Math.max(...histogram.lum, ...histogram.r, ...histogram.g, ...histogram.b, 1);
+                const toPath = bins => {
+                  const pts = bins.map((v,i)=>`${(i/N*W).toFixed(1)},${(H - v/maxVal*H*0.93).toFixed(1)}`).join(' L ');
+                  return `M 0,${H} L ${pts} L ${W},${H} Z`;
+                };
                 return (
                   <div>
-                    <div style={{position:'relative', height:36, marginBottom:6}}>
-                      <div style={{position:'absolute', left:0, right:0, top:16, height:4, borderRadius:2, background:'var(--border2)'}}/>
-                      {marks.map(ar => {
-                        const r = ar.w / ar.h;
-                        const p = toPos(r);
-                        const isActive = Math.abs(cur - r) < 0.015;
-                        return (
-                          <div key={ar.label} style={{position:'absolute', left:`${p}%`, transform:'translateX(-50%)', top:0}}>
-                            <div style={{width:1, height: isActive ? 36 : 20, background: isActive ? 'var(--t1)' : 'var(--border)', margin:'0 auto', marginTop: isActive ? 0 : 8}}/>
-                          </div>
-                        );
-                      })}
-                      <div style={{position:'absolute', left:`${curPos}%`, transform:'translateX(-50%)', top:8, width:8, height:20, background:'var(--t1)', borderRadius:2}}/>
-                    </div>
-                    <div style={{display:'flex', justifyContent:'space-between', fontSize:8, color:'var(--t3)', fontWeight:600, marginBottom:8}}>
-                      <span>9:16</span><span>1:1</span><span>16:9</span><span>32:9</span>
-                    </div>
-                    <div style={{display:'flex', justifyContent:'space-between', alignItems:'center'}}>
-                      <span style={{fontSize:11, fontWeight:700, color:'var(--t1)', fontVariantNumeric:'tabular-nums'}}>{detR||toRatio(width,height)}</span>
-                      <span style={{fontSize:10, color:'var(--t3)', fontVariantNumeric:'tabular-nums'}}>{inputPx ? ((inputPx/1e6).toFixed(2)+' MP') : '—'}</span>
+                    <svg width="100%" height={H} viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" style={{display:'block', borderRadius:3, overflow:'hidden'}}>
+                      <path d={toPath(histogram.r)}   fill="rgba(255,70,70,0.4)"/>
+                      <path d={toPath(histogram.g)}   fill="rgba(50,190,80,0.4)"/>
+                      <path d={toPath(histogram.b)}   fill="rgba(60,120,255,0.4)"/>
+                      <path d={toPath(histogram.lum)} fill="var(--t1)" opacity="0.25"/>
+                    </svg>
+                    <div style={{display:'flex', justifyContent:'space-between', marginTop:5, fontSize:8, color:'var(--t3)', fontWeight:600}}>
+                      <span>DARK</span>
+                      <div style={{display:'flex', gap:5}}>
+                        <span style={{color:'rgba(255,70,70,0.8)'}}>R</span>
+                        <span style={{color:'rgba(50,190,80,0.9)'}}>G</span>
+                        <span style={{color:'rgba(80,140,255,0.9)'}}>B</span>
+                      </div>
+                      <span>LIGHT</span>
                     </div>
                   </div>
                 );
-              })()}
+              })() : (
+                <div style={{height:56, background:'var(--border2)', borderRadius:3, display:'flex', alignItems:'center', justifyContent:'center'}}>
+                  <span style={{fontSize:9, color:'var(--t3)'}}>画像を読み込むと表示します</span>
+                </div>
+              )}
             </div>
           </div>
 
@@ -798,6 +919,61 @@ function App() {
                   B/W
                 </button>
               </div>
+            </div>
+          </div>
+
+          {/* ── Grain Effect ── */}
+          <div className="card">
+            <div className="card-inner" style={{padding:'10px 14px'}}>
+              <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom: showGrain ? 10 : 0}}>
+                <span style={{fontSize:10,fontWeight:700,color:'var(--t3)',letterSpacing:'0.05em'}}>GRAIN</span>
+                <button
+                  className={`ic-btn${showGrain?' on':''}`}
+                  style={{fontSize:10, fontWeight:700, letterSpacing:'0.05em', padding:'4px 10px'}}
+                  onClick={()=>setShowGrain(v=>!v)}
+                  title="粒子ノイズエフェクト">
+                  ON
+                </button>
+              </div>
+              {showGrain && (
+                <div style={{display:'flex', alignItems:'center', gap:8}}>
+                  <span style={{fontSize:10, color:'var(--t3)', whiteSpace:'nowrap', fontWeight:600}}>SIZE</span>
+                  <input
+                    type="number" min="1" max="30"
+                    value={grainSize}
+                    onChange={e=>setGrainSize(Math.max(1, Math.min(30, parseInt(e.target.value)||1)))}
+                    style={{width:52, padding:'4px 6px', fontSize:13, fontWeight:700, fontFamily:'inherit', fontVariantNumeric:'tabular-nums', border:'1px solid var(--border)', borderRadius:'var(--rs)', background:'var(--bg)', color:'var(--t1)', outline:'none', MozAppearance:'textfield', WebkitAppearance:'none'}}
+                  />
+                  <span style={{fontSize:10, color:'var(--t3)'}}>px</span>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* ── Color Palette ── */}
+          <div className="card">
+            <div className="card-inner" style={{padding:'10px 14px'}}>
+              <div style={{fontSize:10,fontWeight:700,color:'var(--t3)',letterSpacing:'0.05em',marginBottom:8}}>PALETTE</div>
+              {palette ? (
+                <div style={{display:'flex', gap:4}}>
+                  {palette.map((hex, i) => (
+                    <div key={i} style={{flex:1, display:'flex', flexDirection:'column', alignItems:'center', gap:3}}>
+                      <div
+                        onClick={()=>{ navigator.clipboard.writeText(hex); setCopiedColor(hex); setTimeout(()=>setCopiedColor(null),1500); }}
+                        style={{width:'100%', height:28, background:hex, borderRadius:'var(--rs)', cursor:'pointer', border:'1px solid rgba(0,0,0,0.1)', transition:'transform 0.1s'}}
+                        onMouseEnter={e=>e.currentTarget.style.transform='scale(1.08)'}
+                        onMouseLeave={e=>e.currentTarget.style.transform='scale(1)'}
+                        title={`コピー: ${hex}`}
+                      />
+                      <span style={{fontSize:7, fontWeight:700, color: copiedColor===hex ? 'var(--t1)' : 'var(--t3)', letterSpacing:'0.02em', fontVariantNumeric:'tabular-nums', textAlign:'center', lineHeight:1}}>
+                        {copiedColor===hex ? 'COPIED' : hex.toUpperCase()}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div style={{fontSize:10, color:'var(--t3)', textAlign:'center', padding:'6px 0'}}>画像を読み込むと抽出します</div>
+              )}
             </div>
           </div>
         </div>
@@ -882,6 +1058,11 @@ function App() {
                     </div>
                   )}
                 </div>
+
+                {/* grain canvas overlay */}
+                {showGrain && (
+                  <canvas ref={grainCanvasRef} style={{position:'absolute',inset:0,pointerEvents:'none',zIndex:2,mixBlendMode:'overlay'}}/>
+                )}
 
                 {/* safe area SVG */}
                 {showSafe && (
