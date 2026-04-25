@@ -180,7 +180,6 @@ button { font-family: inherit; cursor: pointer; }
 .input-grp input::-webkit-outer-spin-button,
 .input-grp input::-webkit-inner-spin-button { -webkit-appearance: none; }
 .input-grp input:focus { border-color: var(--t2); background: var(--surface); }
-.input-grp input.computed { color: var(--t2); background: var(--border2); border-color: transparent; }
 .lock-btn {
   display: flex; align-items: center; justify-content: center;
   width: 30px; height: 30px; border-radius: 50%;
@@ -189,10 +188,8 @@ button { font-family: inherit; cursor: pointer; }
 }
 .lock-btn:hover { border-color: var(--t2); color: var(--t2); }
 .lock-btn.locked { border-color: var(--t1); background: var(--t1); color: var(--surface); }
-.ratio-readout { font-size: 10px; font-weight: 600; color: var(--t3); text-align: center; font-variant-numeric: tabular-nums; }
 
 /* ── Templates ── */
-.cat-tabs { display: flex; gap: 4px; flex-wrap: wrap; }
 .cat-tab {
   display: flex; align-items: center; justify-content: center;
   width: 32px; height: 32px; border-radius: var(--rs);
@@ -201,7 +198,6 @@ button { font-family: inherit; cursor: pointer; }
 }
 .cat-tab:hover { border-color: var(--t2); color: var(--t2); }
 .cat-tab.active { background: var(--t1); border-color: var(--t1); color: var(--surface); }
-.tpl-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 3px; }
 .tpl-item {
   display: flex; align-items: center; justify-content: space-between;
   padding: 7px 9px; border-radius: var(--rs); cursor: pointer;
@@ -239,7 +235,7 @@ button { font-family: inherit; cursor: pointer; }
 <body>
 <div id="root"></div>
 <script type="text/babel">
-const { useState, useEffect, useRef, useCallback } = React;
+const { useState, useEffect, useRef } = React;
 
 // ── Icons ──────────────────────────────────────────────────────────────────
 const Ic = {
@@ -539,6 +535,7 @@ function App() {
   const [palette,   setPalette]   = useState(null);
   const [copiedColor, setCopiedColor] = useState(null);
   const [histogram, setHistogram] = useState(null);
+  const [showFmtMenu, setShowFmtMenu] = useState(false);
   // Theme
   const [dark,     setDark]    = useState(false);
 
@@ -557,6 +554,14 @@ function App() {
   useEffect(() => {
     document.body.classList.toggle('dark', dark);
   }, [dark]);
+
+  // Close format menu on outside click
+  useEffect(() => {
+    if (!showFmtMenu) return;
+    const close = () => setShowFmtMenu(false);
+    document.addEventListener('click', close);
+    return () => document.removeEventListener('click', close);
+  }, [showFmtMenu]);
 
   // Measure preview-area container for dynamic pvW/pvH
   useEffect(() => {
@@ -648,8 +653,6 @@ function App() {
     }));
   }, [pvW, pvH]);
 
-  const resetImgPos = () => setImgOff({x:0, y:0});
-
   // File drag-drop onto preview area (always active, counter prevents flicker)
   const onFileDrop = e => { e.preventDefault(); dragCounterRef.current=0; setFileDrag(false); loadFile(e.dataTransfer.files[0]); setShowImg(true); };
   const onFileDragOver = e => { e.preventDefault(); };
@@ -686,12 +689,13 @@ function App() {
     window.addEventListener('mouseup',   onUp);
   };
 
-  // Preview sizing — height fills the container, only width adjusts with aspect ratio
-  const MAX_W = Math.max(pvAreaW - 80, 80);
-  const MAX_H = Math.max(pvAreaH - 80, 80);
-  const arNum = width && height ? width/height : 1;
-  const pvH = Math.max(MAX_H, 32);
-  const pvW = Math.max(Math.min(pvH * arNum, MAX_W), 32);
+  // Preview sizing — fit inside available area maintaining aspect ratio
+  const MAX_W = Math.max(pvAreaW - 60, 32);
+  const MAX_H = Math.max(pvAreaH - 60, 32);
+  const arNum = width && height ? width / height : 1;
+  const pvByH = MAX_H * arNum;
+  const pvH = pvByH <= MAX_W ? MAX_H : Math.max(Math.round(MAX_W / arNum), 32);
+  const pvW = pvByH <= MAX_W ? Math.max(Math.round(pvByH), 32) : MAX_W;
 
   const inputPx  = (width||0)*(height||0);
   // Image natural size ratio
@@ -863,11 +867,9 @@ function App() {
                   </div>
                 );
               })() : (
-                <svg width="100%" height="56" viewBox="0 0 192 56" preserveAspectRatio="none" style={{display:'block', borderRadius:3, color:'var(--t3)', opacity:0.2}}>
-                  {[4,10,18,28,38,46,50,48,42,34,26,20,14,8,5,4].map((h,i)=>(
-                    <rect key={i} x={i*12+1} y={56-h} width={10} height={h} fill="currentColor" rx="1"/>
-                  ))}
-                </svg>
+                <div style={{height:28, display:'flex', alignItems:'center', justifyContent:'center'}}>
+                  <span style={{fontSize:9, color:'var(--t3)'}}>—</span>
+                </div>
               )}
             </div>
           </div>
@@ -953,18 +955,31 @@ function App() {
                   {showImg ? <Ic.eyeOn/> : <Ic.eyeOff/>}
                 </button>
                 <div style={{width:1,height:14,background:'var(--border)',margin:'0 1px'}}/>
-                {[{fmt:'jpg',bpp:0.08},{fmt:'png',bpp:0.5}].map(({fmt,bpp})=>{
-                  const bytes=inputPx*bpp;
-                  const sz=bytes>=1048576?(bytes/1048576).toFixed(1)+' MB':(bytes/1024).toFixed(0)+' KB';
-                  return (
-                    <button key={fmt} className="ic-btn"
-                      style={{fontSize:10,fontWeight:700,letterSpacing:'0.06em',padding:'5px 8px'}}
-                      title={`~${sz}`}
-                      onClick={()=>exportImg(fmt)}>
-                      {fmt.toUpperCase()}
-                    </button>
-                  );
-                })}
+                <div style={{position:'relative'}}>
+                  <button className="ic-btn"
+                    style={{fontSize:10,fontWeight:700,letterSpacing:'0.06em',padding:'5px 8px'}}
+                    onClick={e=>{e.stopPropagation();setShowFmtMenu(v=>!v)}}>
+                    DL
+                  </button>
+                  {showFmtMenu && (
+                    <div style={{position:'absolute',right:0,top:'calc(100% + 4px)',background:'var(--surface)',border:'1px solid var(--border)',borderRadius:'var(--rs)',zIndex:20,overflow:'hidden',minWidth:64}}>
+                      {[{fmt:'jpg',bpp:0.08},{fmt:'png',bpp:0.5}].map(({fmt,bpp})=>{
+                        const bytes=inputPx*bpp;
+                        const sz=bytes>=1048576?(bytes/1048576).toFixed(1)+' MB':(bytes/1024).toFixed(0)+' KB';
+                        return (
+                          <button key={fmt}
+                            style={{display:'block',width:'100%',padding:'7px 12px',fontSize:10,fontWeight:700,letterSpacing:'0.06em',background:'transparent',border:'none',color:'var(--t1)',cursor:'pointer',textAlign:'left'}}
+                            onMouseEnter={e=>e.currentTarget.style.background='var(--bg)'}
+                            onMouseLeave={e=>e.currentTarget.style.background='transparent'}
+                            title={`~${sz}`}
+                            onClick={()=>{exportImg(fmt);setShowFmtMenu(false);}}>
+                            {fmt.toUpperCase()} <span style={{color:'var(--t3)',fontWeight:500}}>~{sz}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
 
@@ -1111,9 +1126,6 @@ function App() {
                   />
                 </div>
               </div>
-              <div style={{display:'flex', alignItems:'center', gap:4, color:'var(--t3)', fontSize:11, fontVariantNumeric:'tabular-nums', whiteSpace:'nowrap'}}>
-                <span>{detR||toRatio(width,height)}</span>
-              </div>
             </div>
           </div>
         </div>
@@ -1122,7 +1134,6 @@ function App() {
         <details className="card" open>
           <summary style={{padding:'10px 14px',fontSize:10,fontWeight:700,color:'var(--t3)',letterSpacing:'0.05em',cursor:'pointer',listStyle:'none',display:'flex',alignItems:'center',gap:6}}>
             <span style={{flex:1}}>PRESETS</span>
-            <span style={{fontSize:9,fontVariantNumeric:'tabular-nums'}}>{filtTpls.length}</span>
           </summary>
           <div style={{borderTop:'1px solid var(--border)', padding:'8px 10px 4px'}}>
             <div style={{display:'flex', gap:4, marginBottom:6, flexWrap:'wrap'}}>
