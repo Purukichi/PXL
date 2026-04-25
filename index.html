@@ -253,7 +253,10 @@ const Ic = {
   sun:     () => <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" strokeWidth="1.4"><circle cx="6.5" cy="6.5" r="2.5"/><line x1="6.5" y1="1" x2="6.5" y2="2.5"/><line x1="6.5" y1="10.5" x2="6.5" y2="12"/><line x1="1" y1="6.5" x2="2.5" y2="6.5"/><line x1="10.5" y1="6.5" x2="12" y2="6.5"/><line x1="2.9" y1="2.9" x2="3.9" y2="3.9"/><line x1="9.1" y1="9.1" x2="10.1" y2="10.1"/><line x1="9.1" y1="2.9" x2="10.1" y2="3.9"/><line x1="2.9" y1="9.1" x2="3.9" y2="10.1"/></svg>,
   trash:   () => <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" strokeWidth="1.4"><polyline points="2,3 11,3"/><path d="M4 3V2h5v1"/><rect x="3" y="3" width="7" height="8" rx="1"/><line x1="5" y1="5.5" x2="5" y2="9"/><line x1="8" y1="5.5" x2="8" y2="9"/></svg>,
   rotate:  () => <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" strokeWidth="1.4"><path d="M2 4.5A4.5 4.5 0 0 1 10.5 6.5"/><polyline points="8.5,2 10.5,4.5 8,5.5"/><path d="M11 8.5A4.5 4.5 0 0 1 2.5 6.5"/><polyline points="4.5,11 2.5,8.5 5,7.5"/></svg>,
-  bw:      () => <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" strokeWidth="1.3"><circle cx="6.5" cy="6.5" r="5"/><path d="M6.5 1.5 A5 5 0 0 1 6.5 11.5Z" fill="currentColor" stroke="none"/></svg>,
+  bw:         () => <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" strokeWidth="1.3"><circle cx="6.5" cy="6.5" r="5"/><path d="M6.5 1.5 A5 5 0 0 1 6.5 11.5Z" fill="currentColor" stroke="none"/></svg>,
+  crosshair:  () => <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.4"><line x1="7" y1="1" x2="7" y2="5.2"/><line x1="7" y1="8.8" x2="7" y2="13"/><line x1="1" y1="7" x2="5.2" y2="7"/><line x1="8.8" y1="7" x2="13" y2="7"/><circle cx="7" cy="7" r="2.3"/></svg>,
+  dice:       () => <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" strokeWidth="1.3"><rect x="1" y="1" width="11" height="11" rx="2"/><circle cx="4" cy="4" r="1" fill="currentColor" stroke="none"/><circle cx="9" cy="4" r="1" fill="currentColor" stroke="none"/><circle cx="6.5" cy="6.5" r="1" fill="currentColor" stroke="none"/><circle cx="4" cy="9" r="1" fill="currentColor" stroke="none"/><circle cx="9" cy="9" r="1" fill="currentColor" stroke="none"/></svg>,
+  refresh:    () => <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" strokeWidth="1.4"><path d="M11 6.5A4.5 4.5 0 1 1 9.1 2.9"/><polyline points="9,1 9.1,3.5 11.6,3.2"/></svg>,
   catAll:     () => <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" strokeWidth="1.4"><rect x="1" y="1" width="4.5" height="4.5" rx="1"/><rect x="7.5" y="1" width="4.5" height="4.5" rx="1"/><rect x="1" y="7.5" width="4.5" height="4.5" rx="1"/><rect x="7.5" y="7.5" width="4.5" height="4.5" rx="1"/></svg>,
   catDisplay: () => <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" strokeWidth="1.4"><rect x="1" y="2" width="11" height="7" rx="1.5"/><line x1="4.5" y1="11" x2="8.5" y2="11"/><line x1="6.5" y1="9" x2="6.5" y2="11"/></svg>,
   catVideo:   () => <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinejoin="round"><rect x="1" y="3" width="7.5" height="7" rx="1.5"/><polyline points="8.5,5 12,3.5 12,9.5 8.5,8"/></svg>,
@@ -433,40 +436,75 @@ function computeHistogram(imgEl) {
   return { r, g, b, lum };
 }
 
-// ── K-means++ palette extractor ───────────────────────────────────────────
-function extractPalette(imgEl, k = 5) {
-  const MAX = 80;
+// ── Color helpers ─────────────────────────────────────────────────────────
+function rgbToHsl(r, g, b) {
+  r /= 255; g /= 255; b /= 255;
+  const max = Math.max(r, g, b), min = Math.min(r, g, b);
+  const l = (max + min) / 2;
+  if (max === min) return [0, 0, l];
+  const d = max - min;
+  const s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+  let h;
+  if (max === r) h = ((g - b) / d + (g < b ? 6 : 0)) / 6;
+  else if (max === g) h = ((b - r) / d + 2) / 6;
+  else h = ((r - g) / d + 4) / 6;
+  return [h * 360, s, l];
+}
+
+function sampleColor(imgEl, px, py) {
+  const S = 5;
+  const x = Math.max(0, Math.round(px * imgEl.naturalWidth - S / 2));
+  const y = Math.max(0, Math.round(py * imgEl.naturalHeight - S / 2));
+  const oc = document.createElement('canvas'); oc.width = S; oc.height = S;
+  const octx = oc.getContext('2d');
+  octx.drawImage(imgEl, x, y, S, S, 0, 0, S, S);
+  const data = octx.getImageData(0, 0, S, S).data;
+  let r = 0, g = 0, b = 0, n = 0;
+  for (let i = 0; i < data.length; i += 4) {
+    if (data[i + 3] > 0) { r += data[i]; g += data[i+1]; b += data[i+2]; n++; }
+  }
+  if (!n) return '#000000';
+  return '#' + [Math.round(r/n), Math.round(g/n), Math.round(b/n)].map(v => v.toString(16).padStart(2, '0')).join('');
+}
+
+// ── K-means++ palette extractor (mode-aware, returns [{hex,x,y}]) ──────────
+function extractPaletteWithPositions(imgEl, mode) {
+  const MAX = 160, K_POOL = 20;
+  const outK = mode === 'TRITONE' ? 3 : 6;
   const scale = Math.min(MAX / imgEl.naturalWidth, MAX / imgEl.naturalHeight, 1);
   const sw = Math.max(1, Math.round(imgEl.naturalWidth * scale));
   const sh = Math.max(1, Math.round(imgEl.naturalHeight * scale));
-  const oc = document.createElement('canvas');
-  oc.width = sw; oc.height = sh;
+  const oc = document.createElement('canvas'); oc.width = sw; oc.height = sh;
   const octx = oc.getContext('2d');
   octx.drawImage(imgEl, 0, 0, sw, sh);
   const data = octx.getImageData(0, 0, sw, sh).data;
   const pixels = [];
-  for (let i = 0; i < data.length; i += 4) {
-    if (data[i+3] > 128) pixels.push([data[i], data[i+1], data[i+2]]);
+  for (let y = 0; y < sh; y++) {
+    for (let x = 0; x < sw; x++) {
+      const i = (y * sw + x) * 4;
+      if (data[i + 3] > 128) pixels.push({ r: data[i], g: data[i+1], b: data[i+2], px: x / sw, py: y / sh });
+    }
   }
-  if (pixels.length < k) return null;
+  if (pixels.length < K_POOL) return null;
   // K-means++ init
   const centers = [pixels[Math.floor(Math.random() * pixels.length)]];
-  for (let c = 1; c < k; c++) {
+  for (let c = 1; c < K_POOL; c++) {
     const dists = pixels.map(p => centers.reduce((mn, cn) =>
-      Math.min(mn, (p[0]-cn[0])**2 + (p[1]-cn[1])**2 + (p[2]-cn[2])**2), Infinity));
+      Math.min(mn, (p.r-cn.r)**2 + (p.g-cn.g)**2 + (p.b-cn.b)**2), Infinity));
     const total = dists.reduce((a, b) => a + b, 0);
     let rand = Math.random() * total, idx = 0;
     for (let i = 0; i < dists.length; i++) { rand -= dists[i]; if (rand <= 0) { idx = i; break; } }
     centers.push(pixels[idx]);
   }
   // K-means iterations
-  let clusters = centers;
+  let clusters = centers.map(p => ({ r: p.r, g: p.g, b: p.b }));
+  let assigns;
   for (let iter = 0; iter < 20; iter++) {
-    const assigns = Array.from({length: k}, () => []);
+    assigns = Array.from({ length: K_POOL }, () => []);
     for (const p of pixels) {
       let bc = 0, bd = Infinity;
-      for (let c = 0; c < k; c++) {
-        const d = (p[0]-clusters[c][0])**2 + (p[1]-clusters[c][1])**2 + (p[2]-clusters[c][2])**2;
+      for (let c = 0; c < K_POOL; c++) {
+        const d = (p.r-clusters[c].r)**2 + (p.g-clusters[c].g)**2 + (p.b-clusters[c].b)**2;
         if (d < bd) { bd = d; bc = c; }
       }
       assigns[bc].push(p);
@@ -474,15 +512,38 @@ function extractPalette(imgEl, k = 5) {
     clusters = assigns.map((grp, c) => {
       if (!grp.length) return clusters[c];
       const n = grp.length;
-      return [
-        Math.round(grp.reduce((s,p)=>s+p[0],0)/n),
-        Math.round(grp.reduce((s,p)=>s+p[1],0)/n),
-        Math.round(grp.reduce((s,p)=>s+p[2],0)/n),
-      ];
+      return { r: Math.round(grp.reduce((s,p)=>s+p.r,0)/n), g: Math.round(grp.reduce((s,p)=>s+p.g,0)/n), b: Math.round(grp.reduce((s,p)=>s+p.b,0)/n) };
     });
   }
-  return clusters.map(([r,g,b]) =>
-    '#'+[r,g,b].map(v=>v.toString(16).padStart(2,'0')).join(''));
+  // Build cluster reps with representative pixel position
+  const hueDist = (a, b) => { const d = Math.abs(a - b) % 360; return Math.min(d, 360 - d); };
+  const reps = clusters.map((cl, ci) => {
+    const grp = assigns[ci];
+    if (!grp.length) return null;
+    let bestPx = grp[0], bd = Infinity;
+    for (const p of grp) { const d = (p.r-cl.r)**2+(p.g-cl.g)**2+(p.b-cl.b)**2; if (d < bd) { bd = d; bestPx = p; } }
+    const hex = '#' + [cl.r, cl.g, cl.b].map(v => v.toString(16).padStart(2, '0')).join('');
+    const [h, s, l] = rgbToHsl(cl.r, cl.g, cl.b);
+    return { hex, x: bestPx.px, y: bestPx.py, h, s, l };
+  }).filter(Boolean);
+  // Select by mode
+  let selected;
+  if (mode === 'DARK')         selected = [...reps].sort((a, b) => a.l - b.l).slice(0, outK);
+  else if (mode === 'BRIGHT')  selected = [...reps].sort((a, b) => b.l - a.l).slice(0, outK);
+  else if (mode === 'VIVID')   selected = [...reps].sort((a, b) => b.s - a.s).slice(0, outK);
+  else if (mode === 'WARM')    selected = [...reps].sort((a, b) => hueDist(a.h, 30)  - hueDist(b.h, 30)).slice(0, outK);
+  else if (mode === 'COLD')    selected = [...reps].sort((a, b) => hueDist(a.h, 210) - hueDist(b.h, 210)).slice(0, outK);
+  else if (mode === 'TRITONE') {
+    let best = [0, 1, 2], bscore = -1;
+    for (let i = 0; i < reps.length; i++)
+      for (let j = i + 1; j < reps.length; j++)
+        for (let k = j + 1; k < reps.length; k++) {
+          const score = Math.min(hueDist(reps[i].h, reps[j].h), hueDist(reps[i].h, reps[k].h), hueDist(reps[j].h, reps[k].h));
+          if (score > bscore) { bscore = score; best = [i, j, k]; }
+        }
+    selected = best.map(i => reps[i]);
+  }
+  return (selected || []).map(c => ({ hex: c.hex, x: c.x, y: c.y }));
 }
 
 // ── RatioChip ──────────────────────────────────────────────────────────────
@@ -532,7 +593,8 @@ function App() {
   // Overlays
   const [showSafe, setShowSafe]= useState(false);
   const [showBW,   setShowBW]  = useState(false);
-  const [palette,   setPalette]   = useState(null);
+  const [paletteMode, setPaletteMode] = useState('VIVID');
+  const [pickerData,  setPickerData]  = useState(null);
   const [copiedColor, setCopiedColor] = useState(null);
   const [histogram, setHistogram] = useState(null);
   const [showFmtMenu, setShowFmtMenu] = useState(false);
@@ -545,10 +607,12 @@ function App() {
   const pvAreaRef  = useRef();
   const [pvAreaW, setPvAreaW] = useState(600);
   const [pvAreaH, setPvAreaH] = useState(320);
-  const imgOffRef  = useRef({x:0, y:0});   // mirror of imgOff for rAF
-  const snapModeRef = useRef('h');          // mirror of snapMode for rAF
-  const imgNatRef  = useRef({w:0, h:0});   // mirror of imgNat for rAF
+  const imgOffRef  = useRef({x:0, y:0});
+  const snapModeRef = useRef('h');
+  const imgNatRef  = useRef({w:0, h:0});
   const panningRef = useRef(false);
+  const paletteModeRef   = useRef('VIVID');
+  const initialPickerRef = useRef(null);
 
   // Apply dark class to body
   useEffect(() => {
@@ -623,8 +687,8 @@ function App() {
       let best = null, bestD = 9999;
       for (const ar of RATIOS) { const d = Math.abs(r - ar.w/ar.h); if (d < bestD) { bestD=d; best=ar; } }
       if (best) setRatio(best);
-      const pal = extractPalette(img);
-      if (pal) setPalette(pal);
+      const result = extractPaletteWithPositions(img, paletteModeRef.current);
+      if (result) { setPickerData(result); initialPickerRef.current = result.map(p => ({...p})); }
       setHistogram(computeHistogram(img));
     };
     img.src = url;
@@ -784,7 +848,57 @@ function App() {
     document.body.removeChild(a);
   };
 
-  const clearImage = () => { setImgSrc(null); setImgNat({w:0,h:0}); setImgOff({x:0,y:0}); setPalette(null); setCopiedColor(null); setHistogram(null); if(fileRef.current) fileRef.current.value=''; };
+  const clearImage = () => {
+    setImgSrc(null); setImgNat({w:0,h:0}); setImgOff({x:0,y:0});
+    setPickerData(null); setCopiedColor(null); setHistogram(null);
+    initialPickerRef.current = null;
+    if (fileRef.current) fileRef.current.value = '';
+  };
+
+  const runPaletteWithMode = mode => {
+    if (!imgRef.current || !imgNatRef.current.w) return;
+    const result = extractPaletteWithPositions(imgRef.current, mode);
+    if (result) { setPickerData(result); initialPickerRef.current = result.map(p => ({...p})); }
+  };
+
+  const handlePaletteModeChange = e => {
+    const m = e.target.value;
+    paletteModeRef.current = m;
+    setPaletteMode(m);
+    runPaletteWithMode(m);
+  };
+
+  const resetPalette = () => {
+    if (initialPickerRef.current) setPickerData(initialPickerRef.current.map(p => ({...p})));
+  };
+
+  const rerollPalette = () => runPaletteWithMode(paletteModeRef.current);
+
+  const startPickerDrag = (e, idx) => {
+    if (!imgRef.current || !imgNatRef.current.w) return;
+    e.preventDefault(); e.stopPropagation();
+    const pw = pvWrapRef.current ? pvWrapRef.current.getBoundingClientRect().width  : pvW;
+    const ph = pvWrapRef.current ? pvWrapRef.current.getBoundingClientRect().height : pvH;
+    const nat = imgNatRef.current;
+    const sc  = snapModeRef.current === 'h' ? ph / nat.h : pw / nat.w;
+    let prevMx = e.clientX, prevMy = e.clientY;
+    const onMove = ev => {
+      const dx = ev.clientX - prevMx, dy = ev.clientY - prevMy;
+      prevMx = ev.clientX; prevMy = ev.clientY;
+      setPickerData(prev => {
+        if (!prev) return prev;
+        return prev.map((p, i) => {
+          if (i !== idx) return p;
+          const newX = Math.max(0, Math.min(1, p.x + dx / (nat.w * sc)));
+          const newY = Math.max(0, Math.min(1, p.y + dy / (nat.h * sc)));
+          return { x: newX, y: newY, hex: sampleColor(imgRef.current, newX, newY) };
+        });
+      });
+    };
+    const onUp = () => { window.removeEventListener('mousemove', onMove); window.removeEventListener('mouseup', onUp); };
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
+  };
 
   const rotateAspect = () => {
     const newW = height, newH = width;
@@ -877,25 +991,49 @@ function App() {
           {/* ── Color Palette ── */}
           <div className="card">
             <div className="card-inner" style={{padding:'10px 14px'}}>
-              {palette ? (
+              {/* controls */}
+              <div style={{display:'flex', gap:4, marginBottom:8, alignItems:'center'}}>
+                <div style={{position:'relative', flex:1}}>
+                  <select
+                    value={paletteMode}
+                    onChange={handlePaletteModeChange}
+                    style={{width:'100%', fontSize:9, fontWeight:700, letterSpacing:'0.04em',
+                      border:'1px solid var(--border)', borderRadius:'var(--rs)',
+                      background:'var(--bg)', color:'var(--t1)', padding:'4px 20px 4px 6px',
+                      cursor:'pointer', outline:'none', appearance:'none', WebkitAppearance:'none',
+                      fontFamily:'inherit'}}>
+                    {['DARK','BRIGHT','VIVID','WARM','COLD','TRITONE'].map(m => (
+                      <option key={m} value={m}>{m}</option>
+                    ))}
+                  </select>
+                  <svg style={{position:'absolute',right:5,top:'50%',transform:'translateY(-50%)',pointerEvents:'none'}}
+                    width="8" height="8" viewBox="0 0 8 8" fill="none" stroke="var(--t3)" strokeWidth="1.4">
+                    <polyline points="1,2.5 4,5.5 7,2.5"/>
+                  </svg>
+                </div>
+                <button className="ic-btn" onClick={resetPalette} disabled={!pickerData} title="Reset to auto extraction"><Ic.refresh/></button>
+                <button className="ic-btn" onClick={rerollPalette} disabled={!imgSrc} title="Re-roll extraction"><Ic.dice/></button>
+              </div>
+              {/* swatches */}
+              {pickerData ? (
                 <div style={{display:'flex', gap:4}}>
-                  {palette.map((hex, i) => (
+                  {pickerData.map((c, i) => (
                     <div key={i} style={{flex:1, display:'flex', flexDirection:'column', alignItems:'center', gap:3}}>
                       <div
-                        onClick={()=>{ navigator.clipboard.writeText(hex); setCopiedColor(hex); setTimeout(()=>setCopiedColor(null),1500); }}
-                        style={{width:'100%', height:28, background:hex, borderRadius:'var(--rs)', cursor:'pointer', border:'1px solid rgba(0,0,0,0.1)', transition:'transform 0.1s'}}
+                        onClick={()=>{ navigator.clipboard.writeText(c.hex); setCopiedColor(c.hex); setTimeout(()=>setCopiedColor(null),1500); }}
+                        style={{width:'100%', height:24, background:c.hex, borderRadius:'var(--rs)', cursor:'pointer', border:'1px solid rgba(0,0,0,0.1)', transition:'transform 0.1s'}}
                         onMouseEnter={e=>e.currentTarget.style.transform='scale(1.08)'}
                         onMouseLeave={e=>e.currentTarget.style.transform='scale(1)'}
-                        title={`コピー: ${hex}`}
+                        title={`コピー: ${c.hex}`}
                       />
-                      <span style={{fontSize:7, fontWeight:700, color: copiedColor===hex ? 'var(--t1)' : 'var(--t3)', letterSpacing:'0.02em', fontVariantNumeric:'tabular-nums', textAlign:'center', lineHeight:1}}>
-                        {copiedColor===hex ? 'COPIED' : hex.toUpperCase()}
+                      <span style={{fontSize:7, fontWeight:700, color: copiedColor===c.hex ? 'var(--t1)' : 'var(--t3)', letterSpacing:'0.02em', fontVariantNumeric:'tabular-nums', textAlign:'center', lineHeight:1}}>
+                        {copiedColor===c.hex ? 'COPIED' : c.hex.toUpperCase()}
                       </span>
                     </div>
                   ))}
                 </div>
               ) : (
-                <div style={{height:28, display:'flex', alignItems:'center', justifyContent:'center'}}>
+                <div style={{height:24, display:'flex', alignItems:'center', justifyContent:'center'}}>
                   <span style={{fontSize:9, color:'var(--t3)'}}>—</span>
                 </div>
               )}
@@ -1047,6 +1185,26 @@ function App() {
 
                 {/* frame border */}
                 <div className="pv-frame"></div>
+
+                {/* ── Palette pickers ── */}
+                {pickerData && showImg && imgSrc && imgNat.w > 0 && pickerData.map((picker, idx) => {
+                  const sc = snapMode === 'h' ? pvH / imgNat.h : pvW / imgNat.w;
+                  const sx = pvW/2 + imgOff.x + (picker.x * imgNat.w - imgNat.w/2) * sc;
+                  const sy = pvH/2 + imgOff.y + (picker.y * imgNat.h - imgNat.h/2) * sc;
+                  if (sx < -12 || sx > pvW+12 || sy < -12 || sy > pvH+12) return null;
+                  return (
+                    <div key={idx}
+                      style={{position:'absolute', left:sx, top:sy, transform:'translate(-50%,-50%)',
+                        zIndex:9, cursor:'crosshair', pointerEvents:'all', color:'rgba(255,255,255,0.9)'}}
+                      onMouseDown={e => startPickerDrag(e, idx)}>
+                      <div style={{position:'absolute', bottom:'calc(100% + 3px)', left:'50%', transform:'translateX(-50%)',
+                        width:11, height:11, borderRadius:'50%', background:picker.hex,
+                        border:'1.5px solid rgba(255,255,255,0.9)', boxShadow:'0 1px 4px rgba(0,0,0,0.7)',
+                        pointerEvents:'none'}}/>
+                      <Ic.crosshair/>
+                    </div>
+                  );
+                })}
 
                 {/* dimension annotations */}
                 <div className="ann-h">
