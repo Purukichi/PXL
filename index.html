@@ -58,6 +58,14 @@ button { font-family: inherit; cursor: pointer; }
 
 /* ── Card ── */
 .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r); }
+.save-btn {
+  flex:1; padding: 6px 0; font-size: 11px; font-weight: 700; letter-spacing: 0.06em;
+  text-transform: uppercase; cursor: pointer; border-radius: var(--rs);
+  background: transparent; color: var(--t2);
+  border: 1px solid var(--border);
+  transition: background 0.15s, color 0.15s;
+}
+.save-btn:hover { background: var(--t1); color: var(--surface); border-color: var(--t1); }
 .card-inner { padding: 16px 18px; }
 .card-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
 
@@ -66,9 +74,9 @@ button { font-family: inherit; cursor: pointer; }
   position: relative; border-radius: var(--rs);
   background: var(--bg);
   display: flex; align-items: center; justify-content: center;
-  height: 360px; padding: 44px 44px 20px 20px;
+  height: 360px;
+  flex-shrink: 0; flex:1;
   overflow: hidden;
-  flex-shrink: 0;
 }
 .pv-wrap {
   position: relative; flex-shrink: 0;
@@ -408,8 +416,7 @@ const TEMPLATES = [
 // ── Safe area presets ──────────────────────────────────────────────────────
 // Mirrors broadcast/film safe area conventions
 const SAFE_AREAS = [
-  { label: 'Action Safe', pct: 0.90, color: 'rgba(57,255,20,0.9)',  dash: '' },
-  { label: 'Title Safe',  pct: 0.80, color: 'rgba(0,255,140,0.8)',  dash: '' },
+  { label: 'Safe Area (5/6)', pct: 5/6, color: 'rgba(57,255,20,0.9)', dash: '' },
 ];
 
 // ── Helpers ────────────────────────────────────────────────────────────────
@@ -482,6 +489,9 @@ function App() {
   const fileRef    = useRef();
   const imgRef     = useRef();
   const pvWrapRef  = useRef();
+  const pvAreaRef  = useRef();
+  const [pvAreaW, setPvAreaW] = useState(600);
+  const [pvAreaH, setPvAreaH] = useState(320);
   const imgOffRef  = useRef({x:0, y:0});   // mirror of imgOff for rAF
   const snapModeRef = useRef('h');          // mirror of snapMode for rAF
   const imgNatRef  = useRef({w:0, h:0});   // mirror of imgNat for rAF
@@ -497,6 +507,18 @@ function App() {
   useEffect(() => {
     document.body.classList.toggle('dark', dark);
   }, [dark]);
+
+  // Measure preview-area container for dynamic pvW/pvH
+  useEffect(() => {
+    if (!pvAreaRef.current) return;
+    const ro = new ResizeObserver(([e]) => {
+      const {width, height} = e.contentRect;
+      setPvAreaW(width);
+      setPvAreaH(height);
+    });
+    ro.observe(pvAreaRef.current);
+    return () => ro.disconnect();
+  }, []);
 
   // Sync image transform to pv-wrap actual size every frame (follows CSS transition)
   useEffect(() => {
@@ -588,9 +610,10 @@ function App() {
 
   // Image pan: h-snap → X only moves, v-snap → Y only moves
   // Use sx/sy as running anchor updated each frame to avoid stale closure
-    const onCanvasMouseDown = e => {
+  const onCanvasMouseDown = e => {
     if (!showImg || !imgSrc) return;
     e.preventDefault();
+    // capture limits at drag start using current rendered size from rAF ref
     const nat = imgNatRef.current;
     const sm  = snapModeRef.current;
     const pw  = pvWrapRef.current ? pvWrapRef.current.getBoundingClientRect().width  : pvW;
@@ -615,8 +638,9 @@ function App() {
     window.addEventListener('mouseup',   onUp);
   };
 
-  // Preview sizing
-  const MAX_W = 680, MAX_H = 340;
+  // Preview sizing — fit inside measured container (40px padding on each axis)
+  const MAX_W = Math.max(pvAreaW - 80, 80);
+  const MAX_H = Math.max(pvAreaH - 80, 80);
   const arNum = width && height ? width/height : 1;
   let pvW = MAX_W, pvH = MAX_W / arNum;
   if (pvH > MAX_H) { pvH = MAX_H; pvW = MAX_H * arNum; }
@@ -816,7 +840,7 @@ function App() {
             <div style={{display:'flex', gap:14, alignItems:'flex-start'}}>
             <div
               className="preview-area"
-              style={{flex:1}}
+              ref={pvAreaRef}
               onDrop={onFileDrop}
               onDragOver={onFileDragOver}
               onDragEnter={onFileDragEnter}
@@ -957,21 +981,21 @@ function App() {
               <div style={{display:'flex', alignItems:'center', gap:4, color:'var(--t3)', fontSize:11, fontVariantNumeric:'tabular-nums', whiteSpace:'nowrap'}}>
                 <span>{detR||toRatio(width,height)}</span>
               </div>
-              <div style={{display:'flex', gap:4, flexShrink:0}}>
-                {[{fmt:'jpg',bpp:0.08},{fmt:'png',bpp:0.5}].map(({fmt,bpp})=>{
-                  const bytes=inputPx*bpp;
-                  const sz=bytes>=1048576?(bytes/1048576).toFixed(1)+' MB':(bytes/1024).toFixed(0)+' KB';
-                  return (
-                    <button key={fmt} className="zoom-action-btn"
-                      title={`Save as ${fmt.toUpperCase()} (~${sz})`}
-                      onClick={()=>exportImg(fmt)}
-                      style={{textTransform:'uppercase', fontSize:10, fontWeight:700}}>
-                      {fmt}
-                    </button>
-                  );
-                })}
-              </div>
             </div>
+          </div>
+          {/* save buttons row */}
+          <div style={{display:'flex', gap:6, padding:'0 16px 12px'}}>
+            {[{fmt:'jpg',bpp:0.08},{fmt:'png',bpp:0.5}].map(({fmt,bpp})=>{
+              const bytes=inputPx*bpp;
+              const sz=bytes>=1048576?(bytes/1048576).toFixed(1)+' MB':(bytes/1024).toFixed(0)+' KB';
+              return (
+                <button key={fmt} className="save-btn"
+                  title={`~${sz}`}
+                  onClick={()=>exportImg(fmt)}>
+                  {fmt}
+                </button>
+              );
+            })}
           </div>
         </div>
 
