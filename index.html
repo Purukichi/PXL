@@ -66,7 +66,7 @@ button { font-family: inherit; cursor: pointer; }
   position: relative; border-radius: var(--rs);
   background: var(--bg);
   display: flex; align-items: center; justify-content: center;
-  height: 360px;
+  height: 480px;
   flex-shrink: 0; flex:1;
   overflow: hidden;
 }
@@ -411,15 +411,22 @@ function detectRatio(w, h) {
 }
 
 // ── Luminance histogram ────────────────────────────────────────────────────
-function computeHistogram(imgEl) {
+function computeHistogram(imgEl, cropNorm) {
   const MAX = 160;
-  const scale = Math.min(MAX / imgEl.naturalWidth, MAX / imgEl.naturalHeight, 1);
-  const sw = Math.max(1, Math.round(imgEl.naturalWidth * scale));
-  const sh = Math.max(1, Math.round(imgEl.naturalHeight * scale));
+  let srcX = 0, srcY = 0, srcW = imgEl.naturalWidth, srcH = imgEl.naturalHeight;
+  if (cropNorm) {
+    srcX = Math.max(0, Math.round(cropNorm.x * imgEl.naturalWidth));
+    srcY = Math.max(0, Math.round(cropNorm.y * imgEl.naturalHeight));
+    srcW = Math.max(1, Math.min(Math.round(cropNorm.w * imgEl.naturalWidth),  imgEl.naturalWidth  - srcX));
+    srcH = Math.max(1, Math.min(Math.round(cropNorm.h * imgEl.naturalHeight), imgEl.naturalHeight - srcY));
+  }
+  const scale = Math.min(MAX / srcW, MAX / srcH, 1);
+  const sw = Math.max(1, Math.round(srcW * scale));
+  const sh = Math.max(1, Math.round(srcH * scale));
   const oc = document.createElement('canvas');
   oc.width = sw; oc.height = sh;
   const octx = oc.getContext('2d');
-  octx.drawImage(imgEl, 0, 0, sw, sh);
+  octx.drawImage(imgEl, srcX, srcY, srcW, srcH, 0, 0, sw, sh);
   const data = octx.getImageData(0, 0, sw, sh).data;
   const N = 64;
   const r = new Array(N).fill(0), g = new Array(N).fill(0);
@@ -470,7 +477,7 @@ function sampleColor(imgEl, px, py) {
 // ── K-means++ palette extractor (mode-aware, returns [{hex,x,y}]) ──────────
 function extractPaletteWithPositions(imgEl, mode) {
   const MAX = 160, K_POOL = 20;
-  const outK = mode === 'TRITONE' ? 3 : 6;
+  const outK = mode === 'TRITONE' ? 3 : 5;
   const scale = Math.min(MAX / imgEl.naturalWidth, MAX / imgEl.naturalHeight, 1);
   const sw = Math.max(1, Math.round(imgEl.naturalWidth * scale));
   const sh = Math.max(1, Math.round(imgEl.naturalHeight * scale));
@@ -598,6 +605,7 @@ function App() {
   const [copiedColor, setCopiedColor] = useState(null);
   const [histogram, setHistogram] = useState(null);
   const [showFmtMenu, setShowFmtMenu] = useState(false);
+  const [showPickerDots, setShowPickerDots] = useState(true);
   // Theme
   const [dark,     setDark]    = useState(false);
 
@@ -613,6 +621,7 @@ function App() {
   const panningRef = useRef(false);
   const paletteModeRef   = useRef('VIVID');
   const initialPickerRef = useRef(null);
+  const histTimerRef     = useRef(null);
 
   // Apply dark class to body
   useEffect(() => {
@@ -658,7 +667,35 @@ function App() {
     return () => cancelAnimationFrame(rafId);
   }, []);
 
+  // scheduleHistogram: recompute histogram for current visible crop (uses refs → safe to call anywhere)
+  const scheduleHistogram = () => {
+    if (histTimerRef.current) clearTimeout(histTimerRef.current);
+    histTimerRef.current = setTimeout(() => {
+      if (!imgRef.current || !imgNatRef.current.w || !pvWrapRef.current) return;
+      const nat = imgNatRef.current;
+      const sm  = snapModeRef.current;
+      const off = imgOffRef.current;
+      const { width: pw, height: ph } = pvWrapRef.current.getBoundingClientRect();
+      if (!pw || !ph) return;
+      const sc = sm === 'h' ? ph / nat.h : pw / nat.w;
+      const cropX = Math.max(0, nat.w / 2 - (pw / 2 + off.x) / sc);
+      const cropY = Math.max(0, nat.h / 2 - (ph / 2 + off.y) / sc);
+      const cropW = Math.min(pw / sc, nat.w - cropX);
+      const cropH = Math.min(ph / sc, nat.h - cropY);
+      if (cropW > 0 && cropH > 0) {
+        setHistogram(computeHistogram(imgRef.current, {
+          x: cropX / nat.w, y: cropY / nat.h,
+          w: cropW / nat.w, h: cropH / nat.h,
+        }));
+      }
+    }, 120);
+  };
 
+  // Recompute histogram when visible crop changes (aspect ratio / snap mode)
+  useEffect(() => {
+    if (!imgSrc || !imgNat.w) return;
+    scheduleHistogram();
+  }, [pvW, pvH, snapMode, imgSrc, imgNat.w, imgNat.h]); // eslint-disable-line
 
   const handleW = v => { const n=parseInt(v)||0; setWidth(n); if(linked) setHeight(Math.round(n*ratio.h/ratio.w)); setTpl(null); };
   const handleH = v => { const n=parseInt(v)||0; setHeight(n); if(linked) setWidth(Math.round(n*ratio.w/ratio.h)); setTpl(null); };
@@ -748,7 +785,7 @@ function App() {
         y: snapModeRef.current === 'v' ? clamp(prev.y + dy, maxY) : 0,
       }));
     };
-    const onUp = () => { setPanning(false); window.removeEventListener('mousemove',onMove); window.removeEventListener('mouseup',onUp); };
+    const onUp = () => { setPanning(false); window.removeEventListener('mousemove',onMove); window.removeEventListener('mouseup',onUp); scheduleHistogram(); };
     window.addEventListener('mousemove', onMove);
     window.addEventListener('mouseup',   onUp);
   };
@@ -1013,6 +1050,9 @@ function App() {
                 </div>
                 <button className="ic-btn" onClick={resetPalette} disabled={!pickerData} title="Reset to auto extraction"><Ic.refresh/></button>
                 <button className="ic-btn" onClick={rerollPalette} disabled={!imgSrc} title="Re-roll extraction"><Ic.dice/></button>
+                <button className={`ic-btn${showPickerDots?' on':''}`} onClick={()=>setShowPickerDots(v=>!v)} title="Toggle pickers on image">
+                  {showPickerDots ? <Ic.eyeOn/> : <Ic.eyeOff/>}
+                </button>
               </div>
               {/* swatches */}
               {pickerData ? (
@@ -1187,7 +1227,7 @@ function App() {
                 <div className="pv-frame"></div>
 
                 {/* ── Palette pickers ── */}
-                {pickerData && showImg && imgSrc && imgNat.w > 0 && pickerData.map((picker, idx) => {
+                {showPickerDots && pickerData && showImg && imgSrc && imgNat.w > 0 && pickerData.map((picker, idx) => {
                   const sc = snapMode === 'h' ? pvH / imgNat.h : pvW / imgNat.w;
                   const sx = pvW/2 + imgOff.x + (picker.x * imgNat.w - imgNat.w/2) * sc;
                   const sy = pvH/2 + imgOff.y + (picker.y * imgNat.h - imgNat.h/2) * sc;
@@ -1197,9 +1237,9 @@ function App() {
                       style={{position:'absolute', left:sx, top:sy, transform:'translate(-50%,-50%)',
                         zIndex:9, cursor:'crosshair', pointerEvents:'all', color:'rgba(255,255,255,0.9)'}}
                       onMouseDown={e => startPickerDrag(e, idx)}>
-                      <div style={{position:'absolute', bottom:'calc(100% + 3px)', left:'50%', transform:'translateX(-50%)',
-                        width:11, height:11, borderRadius:'50%', background:picker.hex,
-                        border:'1.5px solid rgba(255,255,255,0.9)', boxShadow:'0 1px 4px rgba(0,0,0,0.7)',
+                      <div style={{position:'absolute', bottom:'calc(100% + 4px)', left:'50%', transform:'translateX(-50%)',
+                        width:18, height:18, borderRadius:'50%', background:picker.hex,
+                        border:'2px solid rgba(255,255,255,0.95)', boxShadow:'0 2px 6px rgba(0,0,0,0.7)',
                         pointerEvents:'none'}}/>
                       <Ic.crosshair/>
                     </div>
