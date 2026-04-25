@@ -264,11 +264,13 @@ const Ic = {
   catWeb:     () => <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" strokeWidth="1.4"><circle cx="6.5" cy="6.5" r="5"/><ellipse cx="6.5" cy="6.5" rx="2.2" ry="5"/><line x1="1.5" y1="6.5" x2="11.5" y2="6.5"/></svg>,
   catMobile:  () => <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" strokeWidth="1.4"><rect x="4" y="1" width="5" height="11" rx="1.5"/><line x1="5.5" y1="10" x2="7.5" y2="10"/></svg>,
   catPrint:   () => <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" strokeWidth="1.4"><rect x="3" y="1" width="7" height="5" rx="1"/><path d="M3 6H2A.5.5 0 0 0 1.5 6.5v4a.5.5 0 0 0 .5.5H4V9h5v2h2a.5.5 0 0 0 .5-.5v-4A.5.5 0 0 0 11 6h-1"/><line x1="4.5" y1="8" x2="8.5" y2="8"/><line x1="4.5" y1="10" x2="8.5" y2="10"/></svg>,
+  catMusic:   () => <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" strokeWidth="1.4"><path d="M5 9.5V2.5l6-1.5v7"/><circle cx="3.5" cy="9.5" r="1.5"/><circle cx="9.5" cy="8" r="1.5"/></svg>,
 };
 
 const CAT_ICONS = {
   all: Ic.catAll, display: Ic.catDisplay, video: Ic.catVideo,
   social: Ic.catSocial, web: Ic.catWeb, mobile: Ic.catMobile, print: Ic.catPrint,
+  music: Ic.catMusic,
 };
 
 // ── Data ───────────────────────────────────────────────────────────────────
@@ -369,6 +371,18 @@ const TEMPLATES = [
   { name:'Business Card (300dpi)',w:1050,  h:600,   cat:'print'   },
   { name:'Poster B0 (150dpi)',     w:4964,  h:7022,  cat:'print'   },
   { name:'Square Flyer (300dpi)', w:2480,  h:2480,  cat:'print'   },
+  { name:'Spotify Canvas',        w:1080,  h:1920,  cat:'music'   },
+  { name:'Spotify Artist Header', w:2660,  h:1140,  cat:'music'   },
+  { name:'Spotify Artist Icon',   w:640,   h:640,   cat:'music'   },
+  { name:'Spotify Podcast Cover', w:3000,  h:3000,  cat:'music'   },
+  { name:'Apple Music Banner',    w:4320,  h:1080,  cat:'music'   },
+  { name:'Apple Music Cover',     w:3000,  h:3000,  cat:'music'   },
+  { name:'Apple Music Icon',      w:1024,  h:1024,  cat:'music'   },
+  { name:'YouTube Channel Art',   w:2560,  h:1440,  cat:'music'   },
+  { name:'YouTube Profile Icon',  w:800,   h:800,   cat:'music'   },
+  { name:'YouTube Home Thumb',    w:1280,  h:720,   cat:'music'   },
+  { name:'YouTube Shorts',        w:1080,  h:1920,  cat:'music'   },
+  { name:'Album Art',             w:3000,  h:3000,  cat:'music'   },
 ];
 
 // ── Safe area presets ──────────────────────────────────────────────────────
@@ -441,6 +455,7 @@ function App() {
   const setPanning = v => { panningRef.current=v; setPanning_(v); };
   // Overlays
   const [showSafe, setShowSafe]= useState(false);
+  const [showBW,   setShowBW]  = useState(false);
   // Theme
   const [dark,     setDark]    = useState(false);
 
@@ -492,11 +507,6 @@ function App() {
   }, []);
 
 
-
-  // Ratio change: always update H from W to match new ratio
-  useEffect(() => {
-    setHeight(Math.round(width * ratio.h / ratio.w));
-  }, [ratio]);
 
   const handleW = v => { const n=parseInt(v)||0; setWidth(n); if(linked) setHeight(Math.round(n*ratio.h/ratio.w)); setTpl(null); };
   const handleH = v => { const n=parseInt(v)||0; setHeight(n); if(linked) setWidth(Math.round(n*ratio.w/ratio.h)); setTpl(null); };
@@ -601,7 +611,7 @@ function App() {
   // Image natural size ratio
   const natRatio = imgNat.w && imgNat.h ? toRatio(imgNat.w, imgNat.h) : null;
   const detR     = detectRatio(width, height);
-  const cats     = ['all','display','video','social','web','mobile','print'];
+  const cats     = ['all','display','video','social','web','mobile','print','music'];
   // Draggable number input: 5px mouse movement = 1px value change
   const makeDragInput = (getValue, setValue) => ({
     onMouseDown: e => {
@@ -643,6 +653,7 @@ function App() {
       const img = imgRef.current;
       ctx.save();
       ctx.beginPath(); ctx.rect(0, 0, cW, cH); ctx.clip();
+      if (showBW) ctx.filter = 'grayscale(1)';
       const scaleBase = snapMode === 'h' ? pvH / img.naturalHeight : pvW / img.naturalWidth;
       const outScale  = snapMode === 'h' ? cH  / img.naturalHeight : cW  / img.naturalWidth;
       const ratio = outScale / scaleBase;
@@ -719,7 +730,7 @@ function App() {
                     <div style={{color:'var(--t3)',marginBottom:5,opacity:0.7}}>{group.svg}</div>
                     <div className="ratio-grid">
                       {group.list.map(ar2=>(
-                        <RatioChip key={ar2.label} ar={ar2} active={ratio.label===ar2.label} onClick={()=>setRatio(ar2)}/>
+                        <RatioChip key={ar2.label} ar={ar2} active={ratio.label===ar2.label} onClick={()=>{ setRatio(ar2); setHeight(Math.round(width * ar2.h / ar2.w)); }}/>
                       ))}
                     </div>
                   </div>
@@ -733,6 +744,60 @@ function App() {
                 <Ic.rotate/>
                 <span style={{fontSize:10, fontWeight:700}}>90° 回転</span>
               </button>
+            </div>
+          </div>
+          {/* ── Ratio Analyzer ── */}
+          <div className="card">
+            <div className="card-inner" style={{padding:'12px 14px'}}>
+              <div style={{fontSize:10,fontWeight:700,color:'var(--t3)',letterSpacing:'0.05em',marginBottom:10}}>SPECTRUM</div>
+              {(() => {
+                const minLog = Math.log(0.35), maxLog = Math.log(4.2);
+                const toPos = r => ((Math.log(Math.max(0.35, Math.min(4.2, r))) - minLog) / (maxLog - minLog)) * 100;
+                const cur = (width && height) ? width / height : 1;
+                const curPos = toPos(cur);
+                const marks = RATIOS.filter(ar => ar.w >= ar.h).concat(RATIOS.filter(ar => ar.w < ar.h));
+                return (
+                  <div>
+                    <div style={{position:'relative', height:36, marginBottom:6}}>
+                      <div style={{position:'absolute', left:0, right:0, top:16, height:4, borderRadius:2, background:'var(--border2)'}}/>
+                      {marks.map(ar => {
+                        const r = ar.w / ar.h;
+                        const p = toPos(r);
+                        const isActive = Math.abs(cur - r) < 0.015;
+                        return (
+                          <div key={ar.label} style={{position:'absolute', left:`${p}%`, transform:'translateX(-50%)', top:0}}>
+                            <div style={{width:1, height: isActive ? 36 : 20, background: isActive ? 'var(--t1)' : 'var(--border)', margin:'0 auto', marginTop: isActive ? 0 : 8}}/>
+                          </div>
+                        );
+                      })}
+                      <div style={{position:'absolute', left:`${curPos}%`, transform:'translateX(-50%)', top:8, width:8, height:20, background:'var(--t1)', borderRadius:2}}/>
+                    </div>
+                    <div style={{display:'flex', justifyContent:'space-between', fontSize:8, color:'var(--t3)', fontWeight:600, marginBottom:8}}>
+                      <span>9:16</span><span>1:1</span><span>16:9</span><span>32:9</span>
+                    </div>
+                    <div style={{display:'flex', justifyContent:'space-between', alignItems:'center'}}>
+                      <span style={{fontSize:11, fontWeight:700, color:'var(--t1)', fontVariantNumeric:'tabular-nums'}}>{detR||toRatio(width,height)}</span>
+                      <span style={{fontSize:10, color:'var(--t3)', fontVariantNumeric:'tabular-nums'}}>{inputPx ? ((inputPx/1e6).toFixed(2)+' MP') : '—'}</span>
+                    </div>
+                  </div>
+                );
+              })()}
+            </div>
+          </div>
+
+          {/* ── B&W Toggle ── */}
+          <div className="card">
+            <div className="card-inner" style={{padding:'10px 14px'}}>
+              <div style={{display:'flex', alignItems:'center', justifyContent:'space-between'}}>
+                <span style={{fontSize:10,fontWeight:700,color:'var(--t3)',letterSpacing:'0.05em'}}>PREVIEW</span>
+                <button
+                  className={`ic-btn${showBW?' on':''}`}
+                  style={{fontSize:10, fontWeight:700, letterSpacing:'0.05em', padding:'4px 10px', gap:5}}
+                  onClick={()=>setShowBW(v=>!v)}
+                  title="白黒プレビュー切り替え">
+                  B/W
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -806,6 +871,7 @@ function App() {
                       style={{
                         pointerEvents:'none', userSelect:'none',
                         maxWidth:'none', maxHeight:'none',
+                        filter: showBW ? 'grayscale(1)' : 'none',
                       }}
                     />
                   )}
@@ -927,12 +993,12 @@ function App() {
         </div>
 
         {/* ── Presets ── */}
-        <div className="card">
-          <div style={{padding:'10px 14px 6px', display:'flex', alignItems:'center', justifyContent:'space-between'}}>
-            <span style={{fontSize:10,fontWeight:700,color:'var(--t3)',letterSpacing:'0.05em'}}>PRESETS</span>
-            <span style={{fontSize:9,color:'var(--t3)',fontVariantNumeric:'tabular-nums'}}>{filtTpls.length}</span>
-          </div>
-          <div style={{padding:'0 10px 8px'}}>
+        <details className="card" open>
+          <summary style={{padding:'10px 14px',fontSize:10,fontWeight:700,color:'var(--t3)',letterSpacing:'0.05em',cursor:'pointer',listStyle:'none',display:'flex',alignItems:'center',gap:6}}>
+            <span style={{flex:1}}>PRESETS</span>
+            <span style={{fontSize:9,fontVariantNumeric:'tabular-nums'}}>{filtTpls.length}</span>
+          </summary>
+          <div style={{borderTop:'1px solid var(--border)', padding:'8px 10px 4px'}}>
             <div style={{display:'flex', gap:4, marginBottom:6, flexWrap:'wrap'}}>
               {cats.map(c => {
                 const Icon = CAT_ICONS[c];
@@ -959,7 +1025,7 @@ function App() {
               })}
             </div>
           </div>
-        </div>
+        </details>
 
         </div>{/* end right column */}
       </div>
