@@ -236,8 +236,6 @@ const Ic = {
   rotate:  () => <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" strokeWidth="1.4"><path d="M2 4.5A4.5 4.5 0 0 1 10.5 6.5"/><polyline points="8.5,2 10.5,4.5 8,5.5"/><path d="M11 8.5A4.5 4.5 0 0 1 2.5 6.5"/><polyline points="4.5,11 2.5,8.5 5,7.5"/></svg>,
   bw:         () => <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" strokeWidth="1.3"><circle cx="6.5" cy="6.5" r="5"/><path d="M6.5 1.5 A5 5 0 0 1 6.5 11.5Z" fill="currentColor" stroke="none"/></svg>,
   blurGauss:  () => <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" strokeWidth="1.4"><circle cx="6.5" cy="6.5" r="1.5" fill="currentColor" stroke="none"/><circle cx="6.5" cy="6.5" r="3.2" strokeOpacity="0.55"/><circle cx="6.5" cy="6.5" r="5.2" strokeOpacity="0.25"/></svg>,
-  blurPx:     () => <svg width="13" height="13" viewBox="0 0 13 13" fill="currentColor"><rect x="1" y="1" width="5" height="5"/><rect x="7" y="1" width="5" height="5" opacity="0.45"/><rect x="1" y="7" width="5" height="5" opacity="0.45"/><rect x="7" y="7" width="5" height="5"/></svg>,
-  blurFrost:  () => <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"><line x1="6.5" y1="1" x2="6.5" y2="12"/><line x1="1" y1="6.5" x2="12" y2="6.5"/><line x1="2.5" y1="2.5" x2="10.5" y2="10.5"/><line x1="10.5" y1="2.5" x2="2.5" y2="10.5"/><circle cx="6.5" cy="6.5" r="1.5" fill="currentColor" stroke="none"/></svg>,
   crosshair:  () => <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.4"><line x1="7" y1="1" x2="7" y2="5.2"/><line x1="7" y1="8.8" x2="7" y2="13"/><line x1="1" y1="7" x2="5.2" y2="7"/><line x1="8.8" y1="7" x2="13" y2="7"/><circle cx="7" cy="7" r="2.3"/></svg>,
   dice:       () => <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" strokeWidth="1.3"><rect x="1" y="1" width="11" height="11" rx="2"/><circle cx="4" cy="4" r="1" fill="currentColor" stroke="none"/><circle cx="9" cy="4" r="1" fill="currentColor" stroke="none"/><circle cx="6.5" cy="6.5" r="1" fill="currentColor" stroke="none"/><circle cx="4" cy="9" r="1" fill="currentColor" stroke="none"/><circle cx="9" cy="9" r="1" fill="currentColor" stroke="none"/></svg>,
   refresh:    () => <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" strokeWidth="1.4"><path d="M11 6.5A4.5 4.5 0 1 1 9.1 2.9"/><polyline points="9,1 9.1,3.5 11.6,3.2"/></svg>,
@@ -593,10 +591,8 @@ function App() {
   const [showBW,   setShowBW]  = useState(false);
   const [showBlur, setShowBlur_] = useState(false);
   const setShowBlur = v => { showBlurRef.current = v; setShowBlur_(v); };
-  const [blurMode, setBlurMode_] = useState('gaussian');
   const [blurAmount, setBlurAmount_] = useState(10);
   const setBlurAmount = v => { const val = Math.max(1, Math.round(v)); blurAmountRef.current = val; setBlurAmount_(val); };
-  const setBlurMode = v => { blurModeRef.current = v; setBlurMode_(v); setBlurAmount({gaussian:10,pixel:20,frost:8}[v]||10); };
   const [paletteMode, setPaletteMode] = useState('VIVID');
   const [pickerData,  setPickerData]  = useState(null);
   const [copiedColor, setCopiedColor] = useState(null);
@@ -624,7 +620,6 @@ function App() {
   const initialPickerRef = useRef(null);
   const histTimerRef     = useRef(null);
   const showBlurRef      = useRef(false);
-  const blurModeRef      = useRef('gaussian');
   const blurAmountRef    = useRef(10);
   const getPvSize = () => ({
     pw: pvWrapRef.current ? pvWrapRef.current.offsetWidth  : pvW,
@@ -662,19 +657,7 @@ function App() {
     const tick = () => {
       if (pvWrapRef.current && imgRef.current && imgNatRef.current.w) {
         const nat = imgNatRef.current;
-        let scale = computeScale(pvWrapRef.current.offsetWidth, pvWrapRef.current.offsetHeight, nat, snapModeRef.current, imgZoomRef.current);
-        if (showBlurRef.current && blurModeRef.current === 'pixel') {
-          const pxW = Math.max(1, Math.round(nat.w / Math.max(1, blurAmountRef.current)));
-          const pxH = Math.max(1, Math.round(nat.h / Math.max(1, blurAmountRef.current)));
-          if (imgRef.current.getAttribute('width') != pxW) imgRef.current.setAttribute('width', pxW);
-          if (imgRef.current.getAttribute('height') != pxH) imgRef.current.setAttribute('height', pxH);
-          if (imgRef.current.style.imageRendering !== 'pixelated') imgRef.current.style.imageRendering = 'pixelated';
-          scale = scale * nat.w / pxW;
-        } else if (imgRef.current.hasAttribute('width')) {
-          imgRef.current.removeAttribute('width');
-          imgRef.current.removeAttribute('height');
-          imgRef.current.style.imageRendering = '';
-        }
+        const scale = computeScale(pvWrapRef.current.offsetWidth, pvWrapRef.current.offsetHeight, nat, snapModeRef.current, imgZoomRef.current);
         const off = imgOffRef.current;
         const next = `translate(calc(-50% + ${off.x}px), calc(-50% + ${off.y}px)) scale(${scale})`;
         if (imgRef.current.style.transform !== next) imgRef.current.style.transform = next;
@@ -910,26 +893,9 @@ function App() {
       const ih = img.naturalHeight * outScale;
       const ix = cW/2 + imgOff.x * ratio - iw/2;
       const iy = cH/2 + imgOff.y * ratio - ih/2;
-      if (showBlur && blurMode === 'pixel') {
-        const blockSize = Math.max(1, blurAmount);
-        const pxW = Math.max(1, Math.round(iw / blockSize));
-        const pxH = Math.max(1, Math.round(ih / blockSize));
-        const tmp = document.createElement('canvas');
-        tmp.width = pxW; tmp.height = pxH;
-        const tCtx = tmp.getContext('2d');
-        if (showBW) tCtx.filter = 'grayscale(1)';
-        tCtx.drawImage(img, 0, 0, pxW, pxH);
-        ctx.imageSmoothingEnabled = false;
-        ctx.drawImage(tmp, 0, 0, pxW, pxH, ix, iy, iw, ih);
-        ctx.imageSmoothingEnabled = true;
-      } else {
-        const filters = [];
-        if (showBW) filters.push('grayscale(1)');
-        if (showBlur && blurMode === 'gaussian') filters.push(`blur(${blurAmount}px)`);
-        if (showBlur && blurMode === 'frost') filters.push(`blur(${blurAmount}px) brightness(1.1) saturate(0.85)`);
-        if (filters.length) ctx.filter = filters.join(' ');
-        ctx.drawImage(img, ix, iy, iw, ih);
-      }
+      const filters = [showBW ? 'grayscale(1)' : '', showBlur ? `blur(${blurAmount}px)` : ''].filter(Boolean);
+      if (filters.length) ctx.filter = filters.join(' ');
+      ctx.drawImage(img, ix, iy, iw, ih);
       ctx.restore();
     }
     // Safe areas
@@ -1197,28 +1163,22 @@ function App() {
           {/* ── Blur ── */}
           <div className="card">
             <div className="card-inner" style={{padding:'8px 14px'}}>
-              {/* Row 1: mode select + show/hide */}
-              <div style={{display:'flex', gap:4, alignItems:'center', marginBottom:6}}>
-                <div style={{position:'relative', flex:1}}>
-                  <select
-                    value={blurMode}
-                    onChange={e => setBlurMode(e.target.value)}
-                    style={{width:'100%', fontSize:10, fontWeight:700, letterSpacing:'0.04em',
-                      border:'1px solid var(--border)', borderRadius:'var(--rs)',
-                      background:'var(--bg)', color:'var(--t1)', padding:'6px 20px 6px 28px',
-                      cursor:'pointer', outline:'none', appearance:'none', WebkitAppearance:'none',
-                      fontFamily:'inherit'}}>
-                    <option value="gaussian">ガウス</option>
-                    <option value="pixel">ピクセル</option>
-                    <option value="frost">曇りガラス</option>
-                  </select>
-                  <span style={{position:'absolute', left:7, top:'50%', transform:'translateY(-50%)', pointerEvents:'none', display:'flex', alignItems:'center'}}>
-                    {blurMode === 'gaussian' ? <Ic.blurGauss/> : blurMode === 'pixel' ? <Ic.blurPx/> : <Ic.blurFrost/>}
-                  </span>
-                  <svg style={{position:'absolute',right:5,top:'50%',transform:'translateY(-50%)',pointerEvents:'none'}}
-                    width="8" height="8" viewBox="0 0 8 8" fill="none" stroke="var(--t3)" strokeWidth="1.4">
-                    <polyline points="1,2.5 4,5.5 7,2.5"/>
-                  </svg>
+              <div style={{display:'flex', gap:4, alignItems:'center'}}>
+                <Ic.blurGauss/>
+                <div style={{flex:1, display:'flex', alignItems:'center', gap:2,
+                             fontSize:10, fontWeight:700, lineHeight:1,
+                             border:'1px solid var(--border)', borderRadius:'var(--rs)',
+                             padding:'4px 8px', background:'transparent', cursor:'ew-resize',
+                             transition:'border-color 0.12s, color 0.12s',
+                             opacity: showBlur ? 1 : 0.45}}
+                     onMouseDown={dragBlur.onMouseDown}>
+                  <input className="no-spin" type="number" value={blurAmount} min={1}
+                    onChange={e => setBlurAmount(parseInt(e.target.value)||1)}
+                    style={{width:28, border:'none', background:'transparent', fontSize:10, fontWeight:700,
+                            color:'var(--t1)', textAlign:'right', outline:'none', padding:0,
+                            cursor:'ew-resize'}}
+                  />
+                  <span style={{color:'var(--t2)', marginLeft:2}}>°</span>
                 </div>
                 <button
                   className={`ic-btn${showBlur?' on':''}`}
@@ -1226,24 +1186,6 @@ function App() {
                   title="ぼかし表示切り替え">
                   {showBlur ? <Ic.eyeOn/> : <Ic.eyeOff/>}
                 </button>
-              </div>
-              {/* Row 2: blur amount drag input */}
-              <div style={{display:'flex', alignItems:'center', gap:2,
-                           fontSize:10, fontWeight:700, lineHeight:1,
-                           border:'1px solid var(--border)', borderRadius:'var(--rs)',
-                           padding:'4px 8px', background:'transparent', cursor:'ew-resize',
-                           transition:'border-color 0.12s, color 0.12s',
-                           opacity: showBlur ? 1 : 0.45}}
-                   onMouseDown={dragBlur.onMouseDown}>
-                <input className="no-spin" type="number" value={blurAmount} min={1}
-                  onChange={e => setBlurAmount(parseInt(e.target.value)||1)}
-                  style={{width:28, border:'none', background:'transparent', fontSize:10, fontWeight:700,
-                          color:'var(--t1)', textAlign:'right', outline:'none', padding:0,
-                          cursor:'ew-resize'}}
-                />
-                <span style={{color:'var(--t2)', marginLeft:2}}>
-                  {blurMode === 'pixel' ? 'px' : blurMode === 'frost' ? '☁' : '°'}
-                </span>
               </div>
             </div>
           </div>
@@ -1344,11 +1286,7 @@ function App() {
                       style={{
                         pointerEvents:'none', userSelect:'none',
                         maxWidth:'none', maxHeight:'none',
-                        filter: [
-                          showBW ? 'grayscale(1)' : '',
-                          showBlur && blurMode === 'gaussian' ? `blur(${blurAmount}px)` : '',
-                          showBlur && blurMode === 'frost' ? `blur(${blurAmount}px) brightness(1.1) saturate(0.85)` : '',
-                        ].filter(Boolean).join(' ') || 'none',
+                        filter: [showBW ? 'grayscale(1)' : '', showBlur ? `blur(${blurAmount}px)` : ''].filter(Boolean).join(' ') || 'none',
                       }}
                     />
                   )}
