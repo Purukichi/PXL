@@ -156,6 +156,9 @@ button { font-family: inherit; cursor: pointer; }
 }
 .input-grp input::-webkit-outer-spin-button,
 .input-grp input::-webkit-inner-spin-button { -webkit-appearance: none; }
+.no-spin::-webkit-outer-spin-button,
+.no-spin::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.no-spin { -moz-appearance: textfield; }
 .input-grp input:focus { border-color: var(--t2); background: var(--surface); }
 .lock-btn {
   display: flex; align-items: center; justify-content: center;
@@ -1313,7 +1316,7 @@ function App() {
                   <span style={{fontWeight:700, color:'var(--t1)'}}>{natRatio}</span>
 <span>{imgNat.w}×{imgNat.h}</span>
                   <button
-                    onClick={()=>{ setWidth(imgNat.w); setHeight(imgNat.h); setTpl(null); const r=imgNat.w/imgNat.h; let best=null,bestD=9999; for(const ar of RATIOS){const d=Math.abs(r-ar.w/ar.h);if(d<bestD){bestD=d;best=ar;}} if(best)setRatio(best); }}
+                    onClick={()=>{ setWidth(imgNat.w); setHeight(imgNat.h); setTpl(null); setImgZoom(100); setImgOff({x:0,y:0}); const r=imgNat.w/imgNat.h; let best=null,bestD=9999; for(const ar of RATIOS){const d=Math.abs(r-ar.w/ar.h);if(d<bestD){bestD=d;best=ar;}} if(best)setRatio(best); }}
                     style={{fontSize:9, fontWeight:700, color:'var(--t2)', background:'transparent', border:'1px solid var(--border)', borderRadius:'var(--rs)', padding:'2px 7px', cursor:'pointer'}}
                     title="Reset output to source dimensions"
                   >↩</button>
@@ -1326,19 +1329,18 @@ function App() {
                                border:'1px solid var(--border)', borderRadius:'var(--rs)',
                                padding:'4px 8px', background:'transparent', cursor:'ew-resize',
                                transition:'border-color 0.12s, color 0.12s'}}
-                       onMouseDown={dragZoom.onMouseDown}>
-                    <input type="number" value={imgZoom} min={10} max={1000}
+                       onMouseDown={e => {
+                         if (e.altKey) { e.preventDefault(); setImgZoom(100); setImgOff({x:0,y:0}); return; }
+                         dragZoom.onMouseDown(e);
+                       }}>
+                    <input className="no-spin" type="number" value={imgZoom} min={10} max={1000}
                       onChange={e => { setImgZoom(parseInt(e.target.value)||100); setImgOff({x:0,y:0}); }}
                       style={{width:28, border:'none', background:'transparent', fontSize:10, fontWeight:700,
                               color:'var(--t1)', textAlign:'right', outline:'none', padding:0,
-                              WebkitAppearance:'none', MozAppearance:'textfield', cursor:'ew-resize'}}
+                              cursor:'ew-resize'}}
                     />
                     <span style={{color:'var(--t2)'}}>%</span>
                   </div>
-                  {imgZoom !== 100 && (
-                    <button className="zoom-action-btn" title="Reset zoom"
-                      onClick={()=>{ setImgZoom(100); setImgOff({x:0,y:0}); }}>×</button>
-                  )}
                   <button className="zoom-action-btn" title="Snap top/bottom — drag left/right"
                     style={{borderColor:snapMode==='h'?'var(--t1)':'var(--border)', color:snapMode==='h'?'var(--t1)':'var(--t3)', fontWeight:snapMode==='h'?800:600, filter:'grayscale(1)'}}
                     onClick={()=>{ setSnapMode('h'); setImgOff({x:0,y:0}); }}>↕🔒</button>
