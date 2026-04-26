@@ -365,6 +365,13 @@ const SAFE_AREAS = [
 ];
 
 // ── Helpers ────────────────────────────────────────────────────────────────
+// Returns the effective CSS zoom factor of <body> (viewport px / CSS px).
+// Comparing getBoundingClientRect to offsetWidth is reliable across browsers.
+const getBodyZoom = () => {
+  const bw = document.body.offsetWidth;
+  const br = document.body.getBoundingClientRect().width;
+  return bw > 0 ? br / bw : 1;
+};
 function gcd(a, b) { return b === 0 ? a : gcd(b, a % b); }
 function toRatio(w, h) {
   if (!w || !h) return '—';
@@ -631,8 +638,8 @@ function App() {
     let rafId;
     const tick = () => {
       if (pvWrapRef.current && imgRef.current && imgNatRef.current.w) {
-        const r = pvWrapRef.current.getBoundingClientRect();
-        const aw = r.width, ah = r.height;
+        const aw = pvWrapRef.current.offsetWidth;
+        const ah = pvWrapRef.current.offsetHeight;
         const nat = imgNatRef.current;
         const scale = snapModeRef.current === 'h' ? ah / nat.h : aw / nat.w;
         const off = panningRef.current ? imgOffRef.current : imgOffRef.current;
@@ -653,7 +660,8 @@ function App() {
       const nat = imgNatRef.current;
       const sm  = snapModeRef.current;
       const off = imgOffRef.current;
-      const { width: pw, height: ph } = pvWrapRef.current.getBoundingClientRect();
+      const pw = pvWrapRef.current.offsetWidth;
+      const ph = pvWrapRef.current.offsetHeight;
       if (!pw || !ph) return;
       const sc = sm === 'h' ? ph / nat.h : pw / nat.w;
       const cropX = Math.max(0, nat.w / 2 - (pw / 2 + off.x) / sc);
@@ -769,8 +777,8 @@ function App() {
     // capture limits at drag start using current rendered size from rAF ref
     const nat = imgNatRef.current;
     const sm  = snapModeRef.current;
-    const pw  = pvWrapRef.current ? pvWrapRef.current.getBoundingClientRect().width  : pvW;
-    const ph  = pvWrapRef.current ? pvWrapRef.current.getBoundingClientRect().height : pvH;
+    const pw  = pvWrapRef.current ? pvWrapRef.current.offsetWidth  : pvW;
+    const ph  = pvWrapRef.current ? pvWrapRef.current.offsetHeight : pvH;
     const sc  = sm === 'h' ? ph / nat.h : pw / nat.w;
     const maxX = Math.max(0, (nat.w * sc - pw) / 2);
     const maxY = Math.max(0, (nat.h * sc - ph) / 2);
@@ -778,8 +786,9 @@ function App() {
     let prevMx = e.clientX, prevMy = e.clientY;
     setPanning(true);
     const onMove = ev => {
-      const dx = (ev.clientX - prevMx) * 0.38;
-      const dy = (ev.clientY - prevMy) * 0.38;
+      const z = getBodyZoom();
+      const dx = (ev.clientX - prevMx) * 0.38 / z;
+      const dy = (ev.clientY - prevMy) * 0.38 / z;
       prevMx = ev.clientX; prevMy = ev.clientY;
       setImgOff(prev => ({
         x: snapModeRef.current === 'h' ? clamp(prev.x + dx, maxX) : 0,
@@ -897,7 +906,8 @@ function App() {
   const getVisibleCropNorm = () => {
     if (!imgNatRef.current.w || !pvWrapRef.current) return null;
     const nat = imgNatRef.current, off = imgOffRef.current, sm = snapModeRef.current;
-    const { width: pw, height: ph } = pvWrapRef.current.getBoundingClientRect();
+    const pw = pvWrapRef.current.offsetWidth;
+    const ph = pvWrapRef.current.offsetHeight;
     if (!pw || !ph) return null;
     const sc = sm === 'h' ? ph / nat.h : pw / nat.w;
     const x  = Math.max(0, 0.5 - (pw / 2 + off.x) / (nat.w * sc));
@@ -930,8 +940,8 @@ function App() {
   const startPickerDrag = (e, idx) => {
     if (!imgRef.current || !imgNatRef.current.w) return;
     e.preventDefault(); e.stopPropagation();
-    const pw = pvWrapRef.current ? pvWrapRef.current.getBoundingClientRect().width  : pvW;
-    const ph = pvWrapRef.current ? pvWrapRef.current.getBoundingClientRect().height : pvH;
+    const pw = pvWrapRef.current ? pvWrapRef.current.offsetWidth  : pvW;
+    const ph = pvWrapRef.current ? pvWrapRef.current.offsetHeight : pvH;
     const nat = imgNatRef.current;
     const sm  = snapModeRef.current;
     const sc  = sm === 'h' ? ph / nat.h : pw / nat.w;
@@ -943,7 +953,8 @@ function App() {
     const vy1 = Math.min(1, 0.5 + (ph / 2 - off.y) / (nat.h * sc));
     let prevMx = e.clientX, prevMy = e.clientY;
     const onMove = ev => {
-      const dx = ev.clientX - prevMx, dy = ev.clientY - prevMy;
+      const z = getBodyZoom();
+      const dx = (ev.clientX - prevMx) / z, dy = (ev.clientY - prevMy) / z;
       prevMx = ev.clientX; prevMy = ev.clientY;
       setPickerData(prev => {
         if (!prev) return prev;
