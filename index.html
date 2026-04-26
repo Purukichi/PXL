@@ -1222,7 +1222,7 @@ function App() {
                 </div>
                 <button
                   className={`ic-btn${showBlur?' on':''}`}
-                  onClick={()=>setShowBlur(v=>!v)}
+                  onClick={()=>setShowBlur(!showBlur)}
                   title="ぼかし表示切り替え">
                   {showBlur ? <Ic.eyeOn/> : <Ic.eyeOff/>}
                 </button>
