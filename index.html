@@ -1321,20 +1321,23 @@ function App() {
               )}
               {showImg && imgSrc && (
                 <div style={{display:'flex', gap:6, marginLeft:'auto', alignItems:'center'}}>
-                  {/* Zoom % input */}
-                  <div className="input-grp drag-input-wrap" style={{width:90}}>
-                    <div className="input-icon" style={{fontSize:10, fontWeight:700, letterSpacing:'0.02em', padding:'0 2px'}}>ZOOM</div>
+                  <div style={{display:'flex', alignItems:'center', gap:2,
+                               fontSize:10, fontWeight:700,
+                               border:'1px solid var(--border)', borderRadius:'var(--rs)',
+                               padding:'4px 8px', background:'transparent', cursor:'ew-resize',
+                               transition:'border-color 0.12s, color 0.12s'}}
+                       onMouseDown={dragZoom.onMouseDown}>
                     <input type="number" value={imgZoom} min={10} max={1000}
                       onChange={e => { setImgZoom(parseInt(e.target.value)||100); setImgOff({x:0,y:0}); }}
-                      {...dragZoom}
-                      style={{width:36, textAlign:'right'}}
+                      style={{width:28, border:'none', background:'transparent', fontSize:10, fontWeight:700,
+                              color:'var(--t1)', textAlign:'right', outline:'none', padding:0,
+                              WebkitAppearance:'none', MozAppearance:'textfield', cursor:'ew-resize'}}
                     />
-                    <span style={{fontSize:10, color:'var(--t2)', paddingRight:4}}>%</span>
+                    <span style={{color:'var(--t2)'}}>%</span>
                   </div>
                   {imgZoom !== 100 && (
-                    <button className="zoom-action-btn" title="Reset zoom to 100%"
-                      onClick={()=>{ setImgZoom(100); setImgOff({x:0,y:0}); }}
-                      style={{padding:'4px 6px'}}>×</button>
+                    <button className="zoom-action-btn" title="Reset zoom"
+                      onClick={()=>{ setImgZoom(100); setImgOff({x:0,y:0}); }}>×</button>
                   )}
                   <button className="zoom-action-btn" title="Snap top/bottom — drag left/right"
                     style={{borderColor:snapMode==='h'?'var(--t1)':'var(--border)', color:snapMode==='h'?'var(--t1)':'var(--t3)', fontWeight:snapMode==='h'?800:600, filter:'grayscale(1)'}}
