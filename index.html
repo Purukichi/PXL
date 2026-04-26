@@ -573,6 +573,8 @@ function App() {
   const dragCounterRef = useRef(0);
   const [imgOff,    setImgOff_]  = useState({x:0, y:0});
   const setImgOff = v => { const val = typeof v==='function'?v(imgOffRef.current):v; imgOffRef.current=val; setImgOff_(val); };
+  const [imgZoom,   setImgZoom_] = useState(100);
+  const setImgZoom = v => { const val = Math.max(10, Math.min(1000, Math.round(v))); imgZoomRef.current=val; setImgZoom_(val); };
   const [imgFileName, setImgFileName] = useState('');
   const [snapMode,  setSnapMode_] = useState('h');
   const setSnapMode = v => { snapModeRef.current=v; setSnapMode_(v); };
@@ -601,6 +603,7 @@ function App() {
   const [pvAreaW, setPvAreaW] = useState(600);
   const [pvAreaH, setPvAreaH] = useState(320);
   const imgOffRef  = useRef({x:0, y:0});
+  const imgZoomRef = useRef(100);
   const snapModeRef = useRef('h');
   const imgNatRef  = useRef({w:0, h:0});
   const panningRef = useRef(false);
@@ -641,7 +644,7 @@ function App() {
         const aw = pvWrapRef.current.offsetWidth;
         const ah = pvWrapRef.current.offsetHeight;
         const nat = imgNatRef.current;
-        const scale = snapModeRef.current === 'h' ? ah / nat.h : aw / nat.w;
+        const scale = (snapModeRef.current === 'h' ? ah / nat.h : aw / nat.w) * (imgZoomRef.current / 100);
         const off = panningRef.current ? imgOffRef.current : imgOffRef.current;
         imgRef.current.style.transform =
           `translate(calc(-50% + ${off.x}px), calc(-50% + ${off.y}px)) scale(${scale})`;
@@ -663,7 +666,7 @@ function App() {
       const pw = pvWrapRef.current.offsetWidth;
       const ph = pvWrapRef.current.offsetHeight;
       if (!pw || !ph) return;
-      const sc = sm === 'h' ? ph / nat.h : pw / nat.w;
+      const sc = (sm === 'h' ? ph / nat.h : pw / nat.w) * (imgZoomRef.current / 100);
       const cropX = Math.max(0, nat.w / 2 - (pw / 2 + off.x) / sc);
       const cropY = Math.max(0, nat.h / 2 - (ph / 2 + off.y) / sc);
       const cropW = Math.min(pw / sc, nat.w - cropX);
@@ -779,7 +782,7 @@ function App() {
     const sm  = snapModeRef.current;
     const pw  = pvWrapRef.current ? pvWrapRef.current.offsetWidth  : pvW;
     const ph  = pvWrapRef.current ? pvWrapRef.current.offsetHeight : pvH;
-    const sc  = sm === 'h' ? ph / nat.h : pw / nat.w;
+    const sc  = (sm === 'h' ? ph / nat.h : pw / nat.w) * (imgZoomRef.current / 100);
     const maxX = Math.max(0, (nat.w * sc - pw) / 2);
     const maxY = Math.max(0, (nat.h * sc - ph) / 2);
     const clamp = (v, max) => Math.max(-max, Math.min(max, v));
@@ -791,8 +794,8 @@ function App() {
       const dy = (ev.clientY - prevMy) * 0.38 / z;
       prevMx = ev.clientX; prevMy = ev.clientY;
       setImgOff(prev => ({
-        x: snapModeRef.current === 'h' ? clamp(prev.x + dx, maxX) : 0,
-        y: snapModeRef.current === 'v' ? clamp(prev.y + dy, maxY) : 0,
+        x: clamp(prev.x + dx, maxX),
+        y: clamp(prev.y + dy, maxY),
       }));
     };
     const onUp = () => { setPanning(false); window.removeEventListener('mousemove',onMove); window.removeEventListener('mouseup',onUp); scheduleHistogram(); };
@@ -838,6 +841,16 @@ function App() {
 
   const dragW = makeDragInput(() => width,  v => { setWidth(v);  if(linked) setHeight(Math.round(v * ratio.h / ratio.w)); setTpl(null); });
   const dragH = makeDragInput(() => height, v => { setHeight(v); if(linked) setWidth(Math.round(v * ratio.w / ratio.h));  setTpl(null); });
+  const dragZoom = makeDragInput(() => imgZoom, v => {
+    setImgZoom(v);
+    if (!pvWrapRef.current || !imgNatRef.current.w) { setImgOff({x:0,y:0}); return; }
+    const pw = pvWrapRef.current.offsetWidth, ph = pvWrapRef.current.offsetHeight;
+    const nat = imgNatRef.current, sm = snapModeRef.current;
+    const sc = (sm === 'h' ? ph / nat.h : pw / nat.w) * (Math.max(10,Math.min(1000,Math.round(v))) / 100);
+    const maxX = Math.max(0, (nat.w * sc - pw) / 2);
+    const maxY = Math.max(0, (nat.h * sc - ph) / 2);
+    setImgOff(prev => ({ x: Math.max(-maxX, Math.min(maxX, prev.x)), y: Math.max(-maxY, Math.min(maxY, prev.y)) }));
+  });
 
   // ── Export (JPG or PNG) ──────────────────────────────────────────────────
   const exportImg = (fmt) => {
@@ -856,8 +869,9 @@ function App() {
       ctx.save();
       ctx.beginPath(); ctx.rect(0, 0, cW, cH); ctx.clip();
       if (showBW) ctx.filter = 'grayscale(1)';
-      const scaleBase = snapMode === 'h' ? pvH / img.naturalHeight : pvW / img.naturalWidth;
-      const outScale  = snapMode === 'h' ? cH  / img.naturalHeight : cW  / img.naturalWidth;
+      const zf = imgZoom / 100;
+      const scaleBase = (snapMode === 'h' ? pvH / img.naturalHeight : pvW / img.naturalWidth) * zf;
+      const outScale  = (snapMode === 'h' ? cH  / img.naturalHeight : cW  / img.naturalWidth) * zf;
       const ratio = outScale / scaleBase;
       const iw = img.naturalWidth  * outScale;
       const ih = img.naturalHeight * outScale;
@@ -896,7 +910,7 @@ function App() {
   };
 
   const clearImage = () => {
-    setImgSrc(null); setImgNat({w:0,h:0}); setImgOff({x:0,y:0});
+    setImgSrc(null); setImgNat({w:0,h:0}); setImgOff({x:0,y:0}); setImgZoom(100);
     setPickerData(null); setCopiedColor(null); setHistogram(null);
     initialPickerRef.current = null;
     if (fileRef.current) fileRef.current.value = '';
@@ -909,7 +923,7 @@ function App() {
     const pw = pvWrapRef.current.offsetWidth;
     const ph = pvWrapRef.current.offsetHeight;
     if (!pw || !ph) return null;
-    const sc = sm === 'h' ? ph / nat.h : pw / nat.w;
+    const sc = (sm === 'h' ? ph / nat.h : pw / nat.w) * (imgZoomRef.current / 100);
     const x  = Math.max(0, 0.5 - (pw / 2 + off.x) / (nat.w * sc));
     const y  = Math.max(0, 0.5 - (ph / 2 + off.y) / (nat.h * sc));
     const x1 = Math.min(1, 0.5 + (pw / 2 - off.x) / (nat.w * sc));
@@ -944,7 +958,7 @@ function App() {
     const ph = pvWrapRef.current ? pvWrapRef.current.offsetHeight : pvH;
     const nat = imgNatRef.current;
     const sm  = snapModeRef.current;
-    const sc  = sm === 'h' ? ph / nat.h : pw / nat.w;
+    const sc  = (sm === 'h' ? ph / nat.h : pw / nat.w) * (imgZoomRef.current / 100);
     // Clamp drag to the currently visible image area within the frame
     const off = imgOffRef.current;
     const vx0 = Math.max(0, 0.5 - (pw / 2 + off.x) / (nat.w * sc));
@@ -1263,7 +1277,7 @@ function App() {
 
                 {/* ── Palette pickers ── */}
                 {showPickerDots && pickerData && showImg && imgSrc && imgNat.w > 0 && pickerData.map((picker, idx) => {
-                  const sc = snapMode === 'h' ? pvH / imgNat.h : pvW / imgNat.w;
+                  const sc = (snapMode === 'h' ? pvH / imgNat.h : pvW / imgNat.w) * (imgZoom / 100);
                   const sx = pvW/2 + imgOff.x + (picker.x * imgNat.w - imgNat.w/2) * sc;
                   const sy = pvH/2 + imgOff.y + (picker.y * imgNat.h - imgNat.h/2) * sc;
                   if (sx < -12 || sx > pvW+12 || sy < -12 || sy > pvH+12) return null;
@@ -1306,7 +1320,22 @@ function App() {
                 </div>
               )}
               {showImg && imgSrc && (
-                <div style={{display:'flex', gap:6, marginLeft:'auto'}}>
+                <div style={{display:'flex', gap:6, marginLeft:'auto', alignItems:'center'}}>
+                  {/* Zoom % input */}
+                  <div className="input-grp drag-input-wrap" style={{width:90}}>
+                    <div className="input-icon" style={{fontSize:10, fontWeight:700, letterSpacing:'0.02em', padding:'0 2px'}}>ZOOM</div>
+                    <input type="number" value={imgZoom} min={10} max={1000}
+                      onChange={e => { setImgZoom(parseInt(e.target.value)||100); setImgOff({x:0,y:0}); }}
+                      {...dragZoom}
+                      style={{width:36, textAlign:'right'}}
+                    />
+                    <span style={{fontSize:10, color:'var(--t2)', paddingRight:4}}>%</span>
+                  </div>
+                  {imgZoom !== 100 && (
+                    <button className="zoom-action-btn" title="Reset zoom to 100%"
+                      onClick={()=>{ setImgZoom(100); setImgOff({x:0,y:0}); }}
+                      style={{padding:'4px 6px'}}>×</button>
+                  )}
                   <button className="zoom-action-btn" title="Snap top/bottom — drag left/right"
                     style={{borderColor:snapMode==='h'?'var(--t1)':'var(--border)', color:snapMode==='h'?'var(--t1)':'var(--t3)', fontWeight:snapMode==='h'?800:600, filter:'grayscale(1)'}}
                     onClick={()=>{ setSnapMode('h'); setImgOff({x:0,y:0}); }}>↕🔒</button>
