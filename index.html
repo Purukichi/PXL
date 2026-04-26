@@ -235,6 +235,9 @@ const Ic = {
   trash:   () => <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" strokeWidth="1.4"><polyline points="2,3 11,3"/><path d="M4 3V2h5v1"/><rect x="3" y="3" width="7" height="8" rx="1"/><line x1="5" y1="5.5" x2="5" y2="9"/><line x1="8" y1="5.5" x2="8" y2="9"/></svg>,
   rotate:  () => <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" strokeWidth="1.4"><path d="M2 4.5A4.5 4.5 0 0 1 10.5 6.5"/><polyline points="8.5,2 10.5,4.5 8,5.5"/><path d="M11 8.5A4.5 4.5 0 0 1 2.5 6.5"/><polyline points="4.5,11 2.5,8.5 5,7.5"/></svg>,
   bw:         () => <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" strokeWidth="1.3"><circle cx="6.5" cy="6.5" r="5"/><path d="M6.5 1.5 A5 5 0 0 1 6.5 11.5Z" fill="currentColor" stroke="none"/></svg>,
+  blurGauss:  () => <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" strokeWidth="1.4"><circle cx="6.5" cy="6.5" r="1.5" fill="currentColor" stroke="none"/><circle cx="6.5" cy="6.5" r="3.2" strokeOpacity="0.55"/><circle cx="6.5" cy="6.5" r="5.2" strokeOpacity="0.25"/></svg>,
+  blurPx:     () => <svg width="13" height="13" viewBox="0 0 13 13" fill="currentColor"><rect x="1" y="1" width="5" height="5"/><rect x="7" y="1" width="5" height="5" opacity="0.45"/><rect x="1" y="7" width="5" height="5" opacity="0.45"/><rect x="7" y="7" width="5" height="5"/></svg>,
+  blurFrost:  () => <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"><line x1="6.5" y1="1" x2="6.5" y2="12"/><line x1="1" y1="6.5" x2="12" y2="6.5"/><line x1="2.5" y1="2.5" x2="10.5" y2="10.5"/><line x1="10.5" y1="2.5" x2="2.5" y2="10.5"/><circle cx="6.5" cy="6.5" r="1.5" fill="currentColor" stroke="none"/></svg>,
   crosshair:  () => <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.4"><line x1="7" y1="1" x2="7" y2="5.2"/><line x1="7" y1="8.8" x2="7" y2="13"/><line x1="1" y1="7" x2="5.2" y2="7"/><line x1="8.8" y1="7" x2="13" y2="7"/><circle cx="7" cy="7" r="2.3"/></svg>,
   dice:       () => <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" strokeWidth="1.3"><rect x="1" y="1" width="11" height="11" rx="2"/><circle cx="4" cy="4" r="1" fill="currentColor" stroke="none"/><circle cx="9" cy="4" r="1" fill="currentColor" stroke="none"/><circle cx="6.5" cy="6.5" r="1" fill="currentColor" stroke="none"/><circle cx="4" cy="9" r="1" fill="currentColor" stroke="none"/><circle cx="9" cy="9" r="1" fill="currentColor" stroke="none"/></svg>,
   refresh:    () => <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" strokeWidth="1.4"><path d="M11 6.5A4.5 4.5 0 1 1 9.1 2.9"/><polyline points="9,1 9.1,3.5 11.6,3.2"/></svg>,
@@ -243,7 +246,6 @@ const Ic = {
   catDisplay: () => <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" strokeWidth="1.4"><rect x="1" y="2" width="11" height="7" rx="1.5"/><line x1="4.5" y1="11" x2="8.5" y2="11"/><line x1="6.5" y1="9" x2="6.5" y2="11"/></svg>,
   catVideo:   () => <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinejoin="round"><rect x="1" y="3" width="7.5" height="7" rx="1.5"/><polyline points="8.5,5 12,3.5 12,9.5 8.5,8"/></svg>,
   catSocial:  () => <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" strokeWidth="1.4"><path d="M1 3a1 1 0 0 1 1-1h9a1 1 0 0 1 1 1v5a1 1 0 0 1-1 1H4l-3 2V3z"/></svg>,
-  catWeb:     () => <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" strokeWidth="1.4"><circle cx="6.5" cy="6.5" r="5"/><ellipse cx="6.5" cy="6.5" rx="2.2" ry="5"/><line x1="1.5" y1="6.5" x2="11.5" y2="6.5"/></svg>,
   catMobile:  () => <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" strokeWidth="1.4"><rect x="4" y="1" width="5" height="11" rx="1.5"/><line x1="5.5" y1="10" x2="7.5" y2="10"/></svg>,
   catPrint:   () => <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" strokeWidth="1.4"><rect x="3" y="1" width="7" height="5" rx="1"/><path d="M3 6H2A.5.5 0 0 0 1.5 6.5v4a.5.5 0 0 0 .5.5H4V9h5v2h2a.5.5 0 0 0 .5-.5v-4A.5.5 0 0 0 11 6h-1"/><line x1="4.5" y1="8" x2="8.5" y2="8"/><line x1="4.5" y1="10" x2="8.5" y2="10"/></svg>,
   catMusic:   () => <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" strokeWidth="1.4"><path d="M5 9.5V2.5l6-1.5v7"/><circle cx="3.5" cy="9.5" r="1.5"/><circle cx="9.5" cy="8" r="1.5"/></svg>,
@@ -377,6 +379,7 @@ const getBodyZoom = () => {
   const br = document.body.getBoundingClientRect().width;
   return bw > 0 ? br / bw : 1;
 };
+const computeScale = (pw, ph, nat, sm, zf) => (sm === 'h' ? ph / nat.h : pw / nat.w) * (zf / 100);
 function gcd(a, b) { return b === 0 ? a : gcd(b, a % b); }
 function toRatio(w, h) {
   if (!w || !h) return '—';
@@ -580,14 +583,20 @@ function App() {
   const setImgOff = v => { const val = typeof v==='function'?v(imgOffRef.current):v; imgOffRef.current=val; setImgOff_(val); };
   const [imgZoom,   setImgZoom_] = useState(100);
   const setImgZoom = v => { const val = Math.max(10, Math.min(1000, Math.round(v))); imgZoomRef.current=val; setImgZoom_(val); };
+  const resetZoom = () => { setImgZoom(100); setImgOff({x:0,y:0}); };
   const [imgFileName, setImgFileName] = useState('');
   const [snapMode,  setSnapMode_] = useState('h');
   const setSnapMode = v => { snapModeRef.current=v; setSnapMode_(v); };
-  const [panning,   setPanning_]  = useState(false);
-  const setPanning = v => { panningRef.current=v; setPanning_(v); };
+  const [panning,   setPanning]  = useState(false);
   // Overlays
   const [showSafe, setShowSafe]= useState(false);
   const [showBW,   setShowBW]  = useState(false);
+  const [showBlur, setShowBlur_] = useState(false);
+  const setShowBlur = v => { showBlurRef.current = v; setShowBlur_(v); };
+  const [blurMode, setBlurMode_] = useState('gaussian');
+  const [blurAmount, setBlurAmount_] = useState(10);
+  const setBlurAmount = v => { const val = Math.max(1, Math.round(v)); blurAmountRef.current = val; setBlurAmount_(val); };
+  const setBlurMode = v => { blurModeRef.current = v; setBlurMode_(v); setBlurAmount({gaussian:10,pixel:20,frost:8}[v]||10); };
   const [paletteMode, setPaletteMode] = useState('VIVID');
   const [pickerData,  setPickerData]  = useState(null);
   const [copiedColor, setCopiedColor] = useState(null);
@@ -611,10 +620,16 @@ function App() {
   const imgZoomRef = useRef(100);
   const snapModeRef = useRef('h');
   const imgNatRef  = useRef({w:0, h:0});
-  const panningRef = useRef(false);
   const paletteModeRef   = useRef('VIVID');
   const initialPickerRef = useRef(null);
   const histTimerRef     = useRef(null);
+  const showBlurRef      = useRef(false);
+  const blurModeRef      = useRef('gaussian');
+  const blurAmountRef    = useRef(10);
+  const getPvSize = () => ({
+    pw: pvWrapRef.current ? pvWrapRef.current.offsetWidth  : pvW,
+    ph: pvWrapRef.current ? pvWrapRef.current.offsetHeight : pvH,
+  });
 
   // Apply dark class to body
   useEffect(() => {
@@ -646,13 +661,23 @@ function App() {
     let rafId;
     const tick = () => {
       if (pvWrapRef.current && imgRef.current && imgNatRef.current.w) {
-        const aw = pvWrapRef.current.offsetWidth;
-        const ah = pvWrapRef.current.offsetHeight;
         const nat = imgNatRef.current;
-        const scale = (snapModeRef.current === 'h' ? ah / nat.h : aw / nat.w) * (imgZoomRef.current / 100);
-        const off = panningRef.current ? imgOffRef.current : imgOffRef.current;
-        imgRef.current.style.transform =
-          `translate(calc(-50% + ${off.x}px), calc(-50% + ${off.y}px)) scale(${scale})`;
+        let scale = computeScale(pvWrapRef.current.offsetWidth, pvWrapRef.current.offsetHeight, nat, snapModeRef.current, imgZoomRef.current);
+        if (showBlurRef.current && blurModeRef.current === 'pixel') {
+          const pxW = Math.max(1, Math.round(nat.w / Math.max(1, blurAmountRef.current)));
+          const pxH = Math.max(1, Math.round(nat.h / Math.max(1, blurAmountRef.current)));
+          if (imgRef.current.getAttribute('width') != pxW) imgRef.current.setAttribute('width', pxW);
+          if (imgRef.current.getAttribute('height') != pxH) imgRef.current.setAttribute('height', pxH);
+          if (imgRef.current.style.imageRendering !== 'pixelated') imgRef.current.style.imageRendering = 'pixelated';
+          scale = scale * nat.w / pxW;
+        } else if (imgRef.current.hasAttribute('width')) {
+          imgRef.current.removeAttribute('width');
+          imgRef.current.removeAttribute('height');
+          imgRef.current.style.imageRendering = '';
+        }
+        const off = imgOffRef.current;
+        const next = `translate(calc(-50% + ${off.x}px), calc(-50% + ${off.y}px)) scale(${scale})`;
+        if (imgRef.current.style.transform !== next) imgRef.current.style.transform = next;
       }
       rafId = requestAnimationFrame(tick);
     };
@@ -668,10 +693,9 @@ function App() {
       const nat = imgNatRef.current;
       const sm  = snapModeRef.current;
       const off = imgOffRef.current;
-      const pw = pvWrapRef.current.offsetWidth;
-      const ph = pvWrapRef.current.offsetHeight;
+      const { pw, ph } = getPvSize();
       if (!pw || !ph) return;
-      const sc = (sm === 'h' ? ph / nat.h : pw / nat.w) * (imgZoomRef.current / 100);
+      const sc = computeScale(pw, ph, nat, sm, imgZoomRef.current);
       const cropX = Math.max(0, nat.w / 2 - (pw / 2 + off.x) / sc);
       const cropY = Math.max(0, nat.h / 2 - (ph / 2 + off.y) / sc);
       const cropW = Math.min(pw / sc, nat.w - cropX);
@@ -785,23 +809,22 @@ function App() {
     // capture limits at drag start using current rendered size from rAF ref
     const nat = imgNatRef.current;
     const sm  = snapModeRef.current;
-    const pw  = pvWrapRef.current ? pvWrapRef.current.offsetWidth  : pvW;
-    const ph  = pvWrapRef.current ? pvWrapRef.current.offsetHeight : pvH;
-    const sc  = (sm === 'h' ? ph / nat.h : pw / nat.w) * (imgZoomRef.current / 100);
+    const { pw, ph } = getPvSize();
+    const sc  = computeScale(pw, ph, nat, sm, imgZoomRef.current);
     const maxX = Math.max(0, (nat.w * sc - pw) / 2);
     const maxY = Math.max(0, (nat.h * sc - ph) / 2);
     const clamp = (v, max) => Math.max(-max, Math.min(max, v));
+    const z = getBodyZoom();
     let prevMx = e.clientX, prevMy = e.clientY;
     setPanning(true);
     const onMove = ev => {
-      const z = getBodyZoom();
       const dx = (ev.clientX - prevMx) * 0.38 / z;
       const dy = (ev.clientY - prevMy) * 0.38 / z;
       prevMx = ev.clientX; prevMy = ev.clientY;
-      setImgOff(prev => ({
-        x: clamp(prev.x + dx, maxX),
-        y: clamp(prev.y + dy, maxY),
-      }));
+      setImgOff(prev => {
+        const nx = clamp(prev.x + dx, maxX), ny = clamp(prev.y + dy, maxY);
+        return (nx === prev.x && ny === prev.y) ? prev : { x: nx, y: ny };
+      });
     };
     const onUp = () => { setPanning(false); window.removeEventListener('mousemove',onMove); window.removeEventListener('mouseup',onUp); scheduleHistogram(); };
     window.addEventListener('mousemove', onMove);
@@ -849,13 +872,19 @@ function App() {
   const dragZoom = makeDragInput(() => imgZoom, v => {
     setImgZoom(v);
     if (!pvWrapRef.current || !imgNatRef.current.w) { setImgOff({x:0,y:0}); return; }
-    const pw = pvWrapRef.current.offsetWidth, ph = pvWrapRef.current.offsetHeight;
+    const { pw, ph } = getPvSize();
     const nat = imgNatRef.current, sm = snapModeRef.current;
-    const sc = (sm === 'h' ? ph / nat.h : pw / nat.w) * (Math.max(10,Math.min(1000,Math.round(v))) / 100);
+    const sc = computeScale(pw, ph, nat, sm, Math.max(10, Math.min(1000, Math.round(v))));
     const maxX = Math.max(0, (nat.w * sc - pw) / 2);
     const maxY = Math.max(0, (nat.h * sc - ph) / 2);
-    setImgOff(prev => ({ x: Math.max(-maxX, Math.min(maxX, prev.x)), y: Math.max(-maxY, Math.min(maxY, prev.y)) }));
+    setImgOff(prev => {
+      const nx = Math.max(-maxX, Math.min(maxX, prev.x));
+      const ny = Math.max(-maxY, Math.min(maxY, prev.y));
+      return (nx === prev.x && ny === prev.y) ? prev : { x: nx, y: ny };
+    });
   });
+
+  const dragBlur = makeDragInput(() => blurAmount, setBlurAmount);
 
   // ── Export (JPG or PNG) ──────────────────────────────────────────────────
   const exportImg = (fmt) => {
@@ -873,7 +902,6 @@ function App() {
       const img = imgRef.current;
       ctx.save();
       ctx.beginPath(); ctx.rect(0, 0, cW, cH); ctx.clip();
-      if (showBW) ctx.filter = 'grayscale(1)';
       const zf = imgZoom / 100;
       const scaleBase = (snapMode === 'h' ? pvH / img.naturalHeight : pvW / img.naturalWidth) * zf;
       const outScale  = (snapMode === 'h' ? cH  / img.naturalHeight : cW  / img.naturalWidth) * zf;
@@ -882,7 +910,26 @@ function App() {
       const ih = img.naturalHeight * outScale;
       const ix = cW/2 + imgOff.x * ratio - iw/2;
       const iy = cH/2 + imgOff.y * ratio - ih/2;
-      ctx.drawImage(img, ix, iy, iw, ih);
+      if (showBlur && blurMode === 'pixel') {
+        const blockSize = Math.max(1, blurAmount);
+        const pxW = Math.max(1, Math.round(iw / blockSize));
+        const pxH = Math.max(1, Math.round(ih / blockSize));
+        const tmp = document.createElement('canvas');
+        tmp.width = pxW; tmp.height = pxH;
+        const tCtx = tmp.getContext('2d');
+        if (showBW) tCtx.filter = 'grayscale(1)';
+        tCtx.drawImage(img, 0, 0, pxW, pxH);
+        ctx.imageSmoothingEnabled = false;
+        ctx.drawImage(tmp, 0, 0, pxW, pxH, ix, iy, iw, ih);
+        ctx.imageSmoothingEnabled = true;
+      } else {
+        const filters = [];
+        if (showBW) filters.push('grayscale(1)');
+        if (showBlur && blurMode === 'gaussian') filters.push(`blur(${blurAmount}px)`);
+        if (showBlur && blurMode === 'frost') filters.push(`blur(${blurAmount}px) brightness(1.1) saturate(0.85)`);
+        if (filters.length) ctx.filter = filters.join(' ');
+        ctx.drawImage(img, ix, iy, iw, ih);
+      }
       ctx.restore();
     }
     // Safe areas
@@ -915,7 +962,7 @@ function App() {
   };
 
   const clearImage = () => {
-    setImgSrc(null); setImgNat({w:0,h:0}); setImgOff({x:0,y:0}); setImgZoom(100);
+    setImgSrc(null); setImgNat({w:0,h:0}); resetZoom();
     setPickerData(null); setCopiedColor(null); setHistogram(null);
     initialPickerRef.current = null;
     if (fileRef.current) fileRef.current.value = '';
@@ -925,10 +972,9 @@ function App() {
   const getVisibleCropNorm = () => {
     if (!imgNatRef.current.w || !pvWrapRef.current) return null;
     const nat = imgNatRef.current, off = imgOffRef.current, sm = snapModeRef.current;
-    const pw = pvWrapRef.current.offsetWidth;
-    const ph = pvWrapRef.current.offsetHeight;
+    const { pw, ph } = getPvSize();
     if (!pw || !ph) return null;
-    const sc = (sm === 'h' ? ph / nat.h : pw / nat.w) * (imgZoomRef.current / 100);
+    const sc = computeScale(pw, ph, nat, sm, imgZoomRef.current);
     const x  = Math.max(0, 0.5 - (pw / 2 + off.x) / (nat.w * sc));
     const y  = Math.max(0, 0.5 - (ph / 2 + off.y) / (nat.h * sc));
     const x1 = Math.min(1, 0.5 + (pw / 2 - off.x) / (nat.w * sc));
@@ -959,28 +1005,29 @@ function App() {
   const startPickerDrag = (e, idx) => {
     if (!imgRef.current || !imgNatRef.current.w) return;
     e.preventDefault(); e.stopPropagation();
-    const pw = pvWrapRef.current ? pvWrapRef.current.offsetWidth  : pvW;
-    const ph = pvWrapRef.current ? pvWrapRef.current.offsetHeight : pvH;
+    const { pw, ph } = getPvSize();
     const nat = imgNatRef.current;
     const sm  = snapModeRef.current;
-    const sc  = (sm === 'h' ? ph / nat.h : pw / nat.w) * (imgZoomRef.current / 100);
+    const sc  = computeScale(pw, ph, nat, sm, imgZoomRef.current);
     // Clamp drag to the currently visible image area within the frame
     const off = imgOffRef.current;
-    const vx0 = Math.max(0, 0.5 - (pw / 2 + off.x) / (nat.w * sc));
-    const vx1 = Math.min(1, 0.5 + (pw / 2 - off.x) / (nat.w * sc));
-    const vy0 = Math.max(0, 0.5 - (ph / 2 + off.y) / (nat.h * sc));
-    const vy1 = Math.min(1, 0.5 + (ph / 2 - off.y) / (nat.h * sc));
+    const natScW = nat.w * sc, natScH = nat.h * sc;
+    const vx0 = Math.max(0, 0.5 - (pw / 2 + off.x) / natScW);
+    const vx1 = Math.min(1, 0.5 + (pw / 2 - off.x) / natScW);
+    const vy0 = Math.max(0, 0.5 - (ph / 2 + off.y) / natScH);
+    const vy1 = Math.min(1, 0.5 + (ph / 2 - off.y) / natScH);
+    const z = getBodyZoom();
     let prevMx = e.clientX, prevMy = e.clientY;
     const onMove = ev => {
-      const z = getBodyZoom();
       const dx = (ev.clientX - prevMx) / z, dy = (ev.clientY - prevMy) / z;
       prevMx = ev.clientX; prevMy = ev.clientY;
       setPickerData(prev => {
         if (!prev) return prev;
         return prev.map((p, i) => {
           if (i !== idx) return p;
-          const newX = Math.max(vx0, Math.min(vx1, p.x + dx / (nat.w * sc)));
-          const newY = Math.max(vy0, Math.min(vy1, p.y + dy / (nat.h * sc)));
+          const newX = Math.max(vx0, Math.min(vx1, p.x + dx / natScW));
+          const newY = Math.max(vy0, Math.min(vy1, p.y + dy / natScH));
+          if (newX === p.x && newY === p.y) return p;
           return { x: newX, y: newY, hex: sampleColor(imgRef.current, newX, newY) };
         });
       });
@@ -1147,6 +1194,60 @@ function App() {
             </div>
           </div>
 
+          {/* ── Blur ── */}
+          <div className="card">
+            <div className="card-inner" style={{padding:'8px 14px'}}>
+              {/* Row 1: mode select + show/hide */}
+              <div style={{display:'flex', gap:4, alignItems:'center', marginBottom:6}}>
+                <div style={{position:'relative', flex:1}}>
+                  <select
+                    value={blurMode}
+                    onChange={e => setBlurMode(e.target.value)}
+                    style={{width:'100%', fontSize:10, fontWeight:700, letterSpacing:'0.04em',
+                      border:'1px solid var(--border)', borderRadius:'var(--rs)',
+                      background:'var(--bg)', color:'var(--t1)', padding:'6px 20px 6px 28px',
+                      cursor:'pointer', outline:'none', appearance:'none', WebkitAppearance:'none',
+                      fontFamily:'inherit'}}>
+                    <option value="gaussian">ガウス</option>
+                    <option value="pixel">ピクセル</option>
+                    <option value="frost">曇りガラス</option>
+                  </select>
+                  <span style={{position:'absolute', left:7, top:'50%', transform:'translateY(-50%)', pointerEvents:'none', display:'flex', alignItems:'center'}}>
+                    {blurMode === 'gaussian' ? <Ic.blurGauss/> : blurMode === 'pixel' ? <Ic.blurPx/> : <Ic.blurFrost/>}
+                  </span>
+                  <svg style={{position:'absolute',right:5,top:'50%',transform:'translateY(-50%)',pointerEvents:'none'}}
+                    width="8" height="8" viewBox="0 0 8 8" fill="none" stroke="var(--t3)" strokeWidth="1.4">
+                    <polyline points="1,2.5 4,5.5 7,2.5"/>
+                  </svg>
+                </div>
+                <button
+                  className={`ic-btn${showBlur?' on':''}`}
+                  onClick={()=>setShowBlur(!showBlur)}
+                  title="ぼかし表示切り替え">
+                  {showBlur ? <Ic.eyeOn/> : <Ic.eyeOff/>}
+                </button>
+              </div>
+              {/* Row 2: blur amount drag input */}
+              <div style={{display:'flex', alignItems:'center', gap:2,
+                           fontSize:10, fontWeight:700, lineHeight:1,
+                           border:'1px solid var(--border)', borderRadius:'var(--rs)',
+                           padding:'4px 8px', background:'transparent', cursor:'ew-resize',
+                           transition:'border-color 0.12s, color 0.12s',
+                           opacity: showBlur ? 1 : 0.45}}
+                   onMouseDown={dragBlur.onMouseDown}>
+                <input className="no-spin" type="number" value={blurAmount} min={1}
+                  onChange={e => setBlurAmount(parseInt(e.target.value)||1)}
+                  style={{width:28, border:'none', background:'transparent', fontSize:10, fontWeight:700,
+                          color:'var(--t1)', textAlign:'right', outline:'none', padding:0,
+                          cursor:'ew-resize'}}
+                />
+                <span style={{color:'var(--t2)', marginLeft:2}}>
+                  {blurMode === 'pixel' ? 'px' : blurMode === 'frost' ? '☁' : '°'}
+                </span>
+              </div>
+            </div>
+          </div>
+
           {/* ── Link ── */}
           <div className="card">
             <div className="card-inner" style={{padding:'8px 14px'}}>
@@ -1243,7 +1344,11 @@ function App() {
                       style={{
                         pointerEvents:'none', userSelect:'none',
                         maxWidth:'none', maxHeight:'none',
-                        filter: showBW ? 'grayscale(1)' : 'none',
+                        filter: [
+                          showBW ? 'grayscale(1)' : '',
+                          showBlur && blurMode === 'gaussian' ? `blur(${blurAmount}px)` : '',
+                          showBlur && blurMode === 'frost' ? `blur(${blurAmount}px) brightness(1.1) saturate(0.85)` : '',
+                        ].filter(Boolean).join(' ') || 'none',
                       }}
                     />
                   )}
@@ -1317,7 +1422,7 @@ function App() {
                   <span style={{fontWeight:700, color:'var(--t1)'}}>{natRatio}</span>
 <span>{imgNat.w}×{imgNat.h}</span>
                   <button
-                    onClick={()=>{ setWidth(imgNat.w); setHeight(imgNat.h); setTpl(null); setImgZoom(100); setImgOff({x:0,y:0}); const r=imgNat.w/imgNat.h; let best=null,bestD=9999; for(const ar of RATIOS){const d=Math.abs(r-ar.w/ar.h);if(d<bestD){bestD=d;best=ar;}} if(best)setRatio(best); }}
+                    onClick={()=>{ setWidth(imgNat.w); setHeight(imgNat.h); setTpl(null); resetZoom(); const r=imgNat.w/imgNat.h; let best=null,bestD=9999; for(const ar of RATIOS){const d=Math.abs(r-ar.w/ar.h);if(d<bestD){bestD=d;best=ar;}} if(best)setRatio(best); }}
                     style={{fontSize:9, fontWeight:700, color:'var(--t2)', background:'transparent', border:'1px solid var(--border)', borderRadius:'var(--rs)', padding:'2px 7px', cursor:'pointer'}}
                     title="Reset output to source dimensions"
                   >↩</button>
@@ -1331,7 +1436,7 @@ function App() {
                                padding:'4px 8px', background:'transparent', cursor:'ew-resize',
                                transition:'border-color 0.12s, color 0.12s'}}
                        onMouseDown={e => {
-                         if (e.altKey) { e.preventDefault(); setImgZoom(100); setImgOff({x:0,y:0}); return; }
+                         if (e.altKey) { e.preventDefault(); resetZoom(); return; }
                          dragZoom.onMouseDown(e);
                        }}>
                     <input className="no-spin" type="number" value={imgZoom} min={10} max={1000}
@@ -1344,18 +1449,18 @@ function App() {
                   </div>
                   {imgZoom !== 100 && (
                     <button className="zoom-action-btn" title="Reset zoom to 100%"
-                      onClick={()=>{ setImgZoom(100); setImgOff({x:0,y:0}); }}>×</button>
+                      onClick={resetZoom}>×</button>
                   )}
                   <button className="zoom-action-btn" title="Snap top/bottom"
                     style={{borderColor:snapMode==='h'?'var(--t1)':'var(--border)', color:snapMode==='h'?'var(--t1)':'var(--t3)'}}
-                    onClick={()=>{ setSnapMode('h'); setImgZoom(100); setImgOff({x:0,y:0}); }}>
+                    onClick={()=>{ setSnapMode('h'); resetZoom(); }}>
                     <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round">
                       <line x1="1" y1="2" x2="11" y2="2"/><line x1="1" y1="10" x2="11" y2="10"/>
                     </svg>
                   </button>
                   <button className="zoom-action-btn" title="Snap left/right"
                     style={{borderColor:snapMode==='v'?'var(--t1)':'var(--border)', color:snapMode==='v'?'var(--t1)':'var(--t3)'}}
-                    onClick={()=>{ setSnapMode('v'); setImgZoom(100); setImgOff({x:0,y:0}); }}>
+                    onClick={()=>{ setSnapMode('v'); resetZoom(); }}>
                     <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round">
                       <line x1="2" y1="1" x2="2" y2="11"/><line x1="10" y1="1" x2="10" y2="11"/>
                     </svg>
