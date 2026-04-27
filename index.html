@@ -15,7 +15,6 @@
   --bg:      #f0efe9;
   --surface: #faf9f7;
   --border:  #dedad2;
-  --border2: #e8e6e0;
   --t1:      #1e1d1b;
   --t2:      #5c5a55;
   --t3:      #a09e99;
@@ -27,7 +26,6 @@
   --bg:      #181715;
   --surface: #222120;
   --border:  #333130;
-  --border2: #2a2928;
   --t1:      #e8e6df;
   --t2:      #8c8a84;
   --t3:      #55534f;
@@ -89,7 +87,7 @@ button { font-family: inherit; cursor: pointer; }
 }
 .pv-frame {
   position: absolute; inset: 0;
-  border: 1.5px solid var(--t1); border-radius: 1px;
+  border: 1px solid var(--t1); border-radius: 1px;
   pointer-events: none; z-index: 3;
 }
 /* safe area SVG */
@@ -184,8 +182,8 @@ button { font-family: inherit; cursor: pointer; }
   padding: 7px 9px; border-radius: var(--rs); cursor: pointer;
   border: 1px solid transparent; transition: all 0.1s; gap: 6px;
 }
-.tpl-item:hover { background: var(--bg); border-color: var(--border2); }
-.tpl-item.active { background: var(--border2); border-color: var(--border); }
+.tpl-item:hover { background: var(--bg); border-color: var(--border); }
+.tpl-item.active { background: var(--border); border-color: var(--border); }
 .tpl-left { display: flex; align-items: center; gap: 6px; min-width: 0; }
 .tpl-name { font-size: 11px; font-weight: 500; color: var(--t1); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .tpl-size { font-size: 10px; color: var(--t3); font-variant-numeric: tabular-nums; font-weight: 500; flex-shrink: 0; }
@@ -199,7 +197,6 @@ button { font-family: inherit; cursor: pointer; }
 }
 .ic-btn:hover { border-color: var(--t2); color: var(--t2); }
 .ic-btn.on { background: var(--t1); border-color: var(--t1); color: var(--surface); }
-.ic-btn.danger:hover { border-color: #c0392b; color: #c0392b; }
 
 /* dark toggle */
 .dark-toggle {
@@ -1166,7 +1163,7 @@ function App() {
                 <div style={{flex:1, display:'flex', alignItems:'center', gap:6,
                              fontSize:10, fontWeight:500, lineHeight:1,
                              border:'1px solid var(--border)', borderRadius:'var(--rs)',
-                             padding:'4px 8px', background:'transparent', cursor:'ew-resize',
+                             padding:'6px 8px', background:'transparent', cursor:'ew-resize',
                              transition:'border-color 0.12s, color 0.12s',
                              opacity: showBlur ? 1 : 0.45}}
                      onMouseDown={dragBlur.onMouseDown}>
