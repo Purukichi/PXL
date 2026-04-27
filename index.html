@@ -549,7 +549,7 @@ function RatioChip({ ar, active, onClick }) {
   if (rh > maxH) { rh = maxH; rw = rh * arR; }
   rw = Math.max(rw, 2); rh = Math.max(rh, 2);
   return (
-    <button className={`ratio-chip${active ? ' active' : ''}`} onClick={onClick} title={ar.label}>
+    <button className={`ratio-chip${active ? ' active' : ''}`} onClick={onClick}>
       <svg width={cW} height={cH} viewBox={`0 0 ${cW} ${cH}`} style={{display:'block'}}>
         <rect
           x={(cW-rw)/2} y={(cH-rh)/2} width={rw} height={rh}
@@ -1048,7 +1048,7 @@ function App() {
                 className="ic-btn"
                 style={{width:'100%', marginTop:4, gap:6, justifyContent:'center'}}
                 onClick={rotateAspect}
-                title="向きを90°回転">
+                title="90°">
                 <Ic.rotate/>
               </button>
             </div>
@@ -1114,9 +1114,9 @@ function App() {
                     <polyline points="1,2.5 4,5.5 7,2.5"/>
                   </svg>
                 </div>
-                <button className="ic-btn" onClick={resetPalette} disabled={!pickerData} title="Reset to auto extraction"><Ic.refresh/></button>
-                <button className="ic-btn" onClick={rerollPalette} disabled={!imgSrc} title="Re-roll extraction"><Ic.dice/></button>
-                <button className={`ic-btn${showPickerDots?' on':''}`} onClick={()=>setShowPickerDots(v=>!v)} title="Toggle pickers on image">
+                <button className="ic-btn" onClick={resetPalette} disabled={!pickerData} title="Reset"><Ic.refresh/></button>
+                <button className="ic-btn" onClick={rerollPalette} disabled={!imgSrc} title="Random"><Ic.dice/></button>
+                <button className={`ic-btn${showPickerDots?' on':''}`} onClick={()=>setShowPickerDots(v=>!v)} title="On/Off">
                   {showPickerDots ? <Ic.eyeOn/> : <Ic.eyeOff/>}
                 </button>
               </div>
@@ -1130,7 +1130,7 @@ function App() {
                         style={{width:'100%', height:24, background:c.hex, borderRadius:'var(--rs)', cursor:'pointer', border:'1px solid rgba(0,0,0,0.1)', transition:'transform 0.1s'}}
                         onMouseEnter={e=>e.currentTarget.style.transform='scale(1.08)'}
                         onMouseLeave={e=>e.currentTarget.style.transform='scale(1)'}
-                        title={`コピー: ${c.hex}`}
+                        title="Get!"
                       />
                       <span style={{fontSize:7, fontWeight:500, color: copiedColor===c.hex ? 'var(--t1)' : 'var(--t3)', letterSpacing:'0.02em', fontVariantNumeric:'tabular-nums', textAlign:'center', lineHeight:1}}>
                         {copiedColor===c.hex ? 'COPIED' : c.hex.toUpperCase()}
@@ -1153,7 +1153,7 @@ function App() {
                 className={`ic-btn${showBW?' on':''}`}
                 style={{width:'100%', justifyContent:'center', gap:6}}
                 onClick={()=>setShowBW(v=>!v)}
-                title="白黒プレビュー切り替え">
+                title="Monochrome">
                 <Ic.bw/>
               </button>
             </div>
@@ -1163,26 +1163,26 @@ function App() {
           <div className="card">
             <div className="card-inner" style={{padding:'8px 14px'}}>
               <div style={{display:'flex', gap:4, alignItems:'center'}}>
-                <Ic.blurGauss/>
-                <div style={{flex:1, display:'flex', alignItems:'center', gap:2,
+                <div style={{flex:1, display:'flex', alignItems:'center', gap:6,
                              fontSize:10, fontWeight:500, lineHeight:1,
                              border:'1px solid var(--border)', borderRadius:'var(--rs)',
                              padding:'4px 8px', background:'transparent', cursor:'ew-resize',
                              transition:'border-color 0.12s, color 0.12s',
                              opacity: showBlur ? 1 : 0.45}}
                      onMouseDown={dragBlur.onMouseDown}>
+                  <Ic.blurGauss/>
                   <input className="no-spin" type="number" value={blurAmount} min={1}
                     onChange={e => setBlurAmount(parseInt(e.target.value)||1)}
-                    style={{width:28, border:'none', background:'transparent', fontSize:10, fontWeight:500,
+                    style={{flex:1, width:0, border:'none', background:'transparent', fontSize:10, fontWeight:500,
                             color:'var(--t1)', textAlign:'right', outline:'none', padding:0,
                             cursor:'ew-resize'}}
                   />
-                  <span style={{color:'var(--t2)', marginLeft:2}}>°</span>
+                  <span style={{color:'var(--t2)'}}>°</span>
                 </div>
                 <button
                   className={`ic-btn${showBlur?' on':''}`}
                   onClick={()=>setShowBlur(!showBlur)}
-                  title="ぼかし表示切り替え">
+                  title="On/Off">
                   {showBlur ? <Ic.eyeOn/> : <Ic.eyeOff/>}
                 </button>
               </div>
@@ -1216,16 +1216,16 @@ function App() {
               </div>
               <div style={{display:'flex',gap:5,alignItems:'center'}}>
                 {showImg && imgSrc && (
-                  <button className="ic-btn danger" onClick={clearImage} title="Remove image"><Ic.trash/></button>
+                  <button className="ic-btn danger" onClick={clearImage} title="Remove"><Ic.trash/></button>
                 )}
-                <button className={`ic-btn${showSafe?' on':''}`} onClick={()=>setShowSafe(v=>!v)} title="Toggle safe area"><Ic.safe/></button>
+                <button className={`ic-btn${showSafe?' on':''}`} onClick={()=>setShowSafe(v=>!v)} title="Safe Area"><Ic.safe/></button>
                 {showImg && (
                   <>
                     <input ref={fileRef} type="file" accept="image/*" style={{display:'none'}} onChange={e=>loadFile(e.target.files[0])}/>
-                    <button className="ic-btn" onClick={()=>fileRef.current.click()} title="Choose file"><Ic.upload/></button>
+                    <button className="ic-btn" onClick={()=>fileRef.current.click()} title="Put your photo"><Ic.upload/></button>
                   </>
                 )}
-                <button className={`ic-btn${showImg?' on':''}`} onClick={()=>setShowImg(v=>!v)} title="Toggle image">
+                <button className={`ic-btn${showImg?' on':''}`} onClick={()=>setShowImg(v=>!v)} title="On/Off">
                   {showImg ? <Ic.eyeOn/> : <Ic.eyeOff/>}
                 </button>
                 <div style={{width:1,height:14,background:'var(--border)',margin:'0 1px'}}/>
@@ -1244,7 +1244,6 @@ function App() {
                             style={{display:'block',width:'100%',padding:'7px 12px',fontSize:10,fontWeight:500,letterSpacing:'0.06em',background:'transparent',border:'none',color:'var(--t1)',cursor:'pointer',textAlign:'left'}}
                             onMouseEnter={e=>e.currentTarget.style.background='var(--bg)'}
                             onMouseLeave={e=>e.currentTarget.style.background='transparent'}
-                            title={`~${sz}`}
                             onClick={()=>{exportImg(fmt);setShowFmtMenu(false);}}>
                             {fmt.toUpperCase()} <span style={{color:'var(--t3)',fontWeight:500}}>~{sz}</span>
                           </button>
@@ -1361,7 +1360,7 @@ function App() {
                   <button
                     onClick={()=>{ setWidth(imgNat.w); setHeight(imgNat.h); setTpl(null); resetZoom(); const r=imgNat.w/imgNat.h; let best=null,bestD=9999; for(const ar of RATIOS){const d=Math.abs(r-ar.w/ar.h);if(d<bestD){bestD=d;best=ar;}} if(best)setRatio(best); }}
                     style={{fontSize:9, fontWeight:500, color:'var(--t2)', background:'transparent', border:'1px solid var(--border)', borderRadius:'var(--rs)', padding:'2px 7px', cursor:'pointer'}}
-                    title="Reset output to source dimensions"
+                    title="Reset Position"
                   >↩</button>
                 </div>
               )}
@@ -1385,17 +1384,17 @@ function App() {
                     <span style={{color:'var(--t2)'}}>%</span>
                   </div>
                   {imgZoom !== 100 && (
-                    <button className="zoom-action-btn" title="Reset zoom to 100%"
+                    <button className="zoom-action-btn" title="Reset Zoom"
                       onClick={resetZoom}>×</button>
                   )}
-                  <button className="zoom-action-btn" title="Snap top/bottom"
+                  <button className="zoom-action-btn" title="Snap⇕"
                     style={{borderColor:snapMode==='h'?'var(--t1)':'var(--border)', color:snapMode==='h'?'var(--t1)':'var(--t3)'}}
                     onClick={()=>{ setSnapMode('h'); resetZoom(); }}>
                     <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round">
                       <line x1="1" y1="2" x2="11" y2="2"/><line x1="1" y1="10" x2="11" y2="10"/>
                     </svg>
                   </button>
-                  <button className="zoom-action-btn" title="Snap left/right"
+                  <button className="zoom-action-btn" title="Snap⇔"
                     style={{borderColor:snapMode==='v'?'var(--t1)':'var(--border)', color:snapMode==='v'?'var(--t1)':'var(--t3)'}}
                     onClick={()=>{ setSnapMode('v'); resetZoom(); }}>
                     <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round">
@@ -1448,7 +1447,7 @@ function App() {
                 const Icon = CAT_ICONS[c];
                 return (
                   <button key={c} className={`cat-tab${cat===c?' active':''}`}
-                    onClick={()=>setCat(c)} title={c}>
+                    onClick={()=>setCat(c)}>
                     <Icon/>
                   </button>
                 );
