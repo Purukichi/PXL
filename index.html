@@ -1233,19 +1233,15 @@ function App() {
                   </button>
                   {showFmtMenu && (
                     <div style={{position:'absolute',right:0,top:'calc(100% + 4px)',background:'var(--surface)',border:'1px solid var(--border)',borderRadius:'var(--rs)',zIndex:20,overflow:'hidden',minWidth:64}}>
-                      {[{fmt:'jpg',bpp:0.08},{fmt:'png',bpp:0.5}].map(({fmt,bpp})=>{
-                        const bytes=inputPx*bpp;
-                        const sz=bytes>=1048576?(bytes/1048576).toFixed(1)+' MB':(bytes/1024).toFixed(0)+' KB';
-                        return (
+                      {['jpg','png'].map(fmt=>(
                           <button key={fmt}
                             style={{display:'block',width:'100%',padding:'7px 12px',fontSize:10,fontWeight:500,letterSpacing:'0.06em',background:'transparent',border:'none',color:'var(--t1)',cursor:'pointer',textAlign:'left'}}
                             onMouseEnter={e=>e.currentTarget.style.background='var(--bg)'}
                             onMouseLeave={e=>e.currentTarget.style.background='transparent'}
                             onClick={()=>{exportImg(fmt);setShowFmtMenu(false);}}>
-                            {fmt.toUpperCase()} <span style={{color:'var(--t3)',fontWeight:500}}>~{sz}</span>
+                            {fmt.toUpperCase()}
                           </button>
-                        );
-                      })}
+                      ))}
                     </div>
                   )}
                 </div>
