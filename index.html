@@ -103,7 +103,7 @@ button { font-family: inherit; cursor: pointer; }
   display: flex; flex-direction: column; align-items: center; justify-content: center;
   gap: 6px; color: var(--t3); pointer-events: none;
 }
-.drop-hint span { font-size: 10px; font-weight: 600; opacity: 0.55; }
+.drop-hint span { font-size: 10px; font-weight: 500; opacity: 0.55; }
 .drop-overlay {
   position: absolute; inset: 0; background: rgba(0,0,0,0.06);
   border: 2px dashed var(--t2); border-radius: var(--rs);
@@ -113,13 +113,13 @@ button { font-family: inherit; cursor: pointer; }
 .pv-badge-r {
   position: absolute; top: -24px; left: 50%; transform: translateX(-50%);
   background: var(--t1); color: var(--surface);
-  font-size: 10px; font-weight: 700; letter-spacing: 0.02em;
+  font-size: 10px; font-weight: 500; letter-spacing: 0.02em;
   padding: 3px 9px; border-radius: 99px; white-space: nowrap; z-index: 5;
   pointer-events: none;
 }
 .zoom-action-btn {
   display: inline-flex; align-items: center; justify-content: center;
-  font-size: 10px; font-weight: 700; color: var(--t3);
+  font-size: 10px; font-weight: 500; color: var(--t3);
   border: 1px solid var(--border); border-radius: var(--rs);
   padding: 4px 8px; background: transparent; transition: all 0.12s;
   white-space: nowrap; line-height: 1;
@@ -141,7 +141,7 @@ button { font-family: inherit; cursor: pointer; }
 }
 .ratio-chip:hover { border-color: var(--t2); background: var(--bg); }
 .ratio-chip.active { border-color: var(--t1); background: var(--t1); color: var(--surface); }
-.ratio-chip .rl { font-size: 10px; font-weight: 700; letter-spacing: -0.01em; }
+.ratio-chip .rl { font-size: 10px; font-weight: 500; letter-spacing: -0.01em; }
 
 /* ── Input panel ── */
 .input-row { display: grid; grid-template-columns: 1fr 30px 1fr; gap: 6px; align-items: center; }
@@ -149,7 +149,7 @@ button { font-family: inherit; cursor: pointer; }
 .input-icon { display: flex; align-items: center; color: var(--t3); }
 .input-grp input {
   width: 100%; padding: 7px 8px;
-  font-size: 17px; font-weight: 700; letter-spacing: -0.02em;
+  font-size: 17px; font-weight: 500; letter-spacing: -0.02em;
   font-family: inherit; font-variant-numeric: tabular-nums;
   border: 1px solid var(--border); border-radius: var(--rs);
   background: var(--bg); color: var(--t1); outline: none;
@@ -188,7 +188,7 @@ button { font-family: inherit; cursor: pointer; }
 .tpl-item.active { background: var(--border2); border-color: var(--border); }
 .tpl-left { display: flex; align-items: center; gap: 6px; min-width: 0; }
 .tpl-name { font-size: 11px; font-weight: 500; color: var(--t1); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.tpl-size { font-size: 10px; color: var(--t3); font-variant-numeric: tabular-nums; font-weight: 600; flex-shrink: 0; }
+.tpl-size { font-size: 10px; color: var(--t3); font-variant-numeric: tabular-nums; font-weight: 500; flex-shrink: 0; }
 
 /* ── Icon buttons ── */
 .ic-btn {
@@ -206,7 +206,7 @@ button { font-family: inherit; cursor: pointer; }
   display: flex; align-items: center; gap: 5px;
   border: 1px solid var(--border); border-radius: 99px;
   padding: 4px 10px; background: transparent;
-  font-size: 10px; font-weight: 700; color: var(--t3);
+  font-size: 10px; font-weight: 500; color: var(--t3);
   transition: all 0.13s; letter-spacing: 0.04em;
 }
 .dark-toggle:hover { border-color: var(--t2); color: var(--t2); }
@@ -1050,7 +1050,6 @@ function App() {
                 onClick={rotateAspect}
                 title="向きを90°回転">
                 <Ic.rotate/>
-                <span style={{fontSize:10, fontWeight:700}}>90° 回転</span>
               </button>
             </div>
           </div>
@@ -1073,7 +1072,7 @@ function App() {
                       <path d={toPath(dh.b)}   fill="rgba(60,120,255,0.4)"/>
                       <path d={toPath(dh.lum)} fill="var(--t1)" opacity="0.25"/>
                     </svg>
-                    <div style={{display:'flex', justifyContent:'space-between', marginTop:5, fontSize:8, color:'var(--t3)', fontWeight:600}}>
+                    <div style={{display:'flex', justifyContent:'space-between', marginTop:5, fontSize:8, color:'var(--t3)', fontWeight:500}}>
                       <span>DARK</span>
                       <div style={{display:'flex', gap:5}}>
                         <span style={{color:'rgba(255,70,70,0.8)'}}>R</span>
@@ -1101,7 +1100,7 @@ function App() {
                   <select
                     value={paletteMode}
                     onChange={handlePaletteModeChange}
-                    style={{width:'100%', fontSize:10, fontWeight:700, letterSpacing:'0.04em',
+                    style={{width:'100%', fontSize:10, fontWeight:500, letterSpacing:'0.04em',
                       border:'1px solid var(--border)', borderRadius:'var(--rs)',
                       background:'var(--bg)', color:'var(--t1)', padding:'6px 20px 6px 8px',
                       cursor:'pointer', outline:'none', appearance:'none', WebkitAppearance:'none',
@@ -1133,7 +1132,7 @@ function App() {
                         onMouseLeave={e=>e.currentTarget.style.transform='scale(1)'}
                         title={`コピー: ${c.hex}`}
                       />
-                      <span style={{fontSize:7, fontWeight:700, color: copiedColor===c.hex ? 'var(--t1)' : 'var(--t3)', letterSpacing:'0.02em', fontVariantNumeric:'tabular-nums', textAlign:'center', lineHeight:1}}>
+                      <span style={{fontSize:7, fontWeight:500, color: copiedColor===c.hex ? 'var(--t1)' : 'var(--t3)', letterSpacing:'0.02em', fontVariantNumeric:'tabular-nums', textAlign:'center', lineHeight:1}}>
                         {copiedColor===c.hex ? 'COPIED' : c.hex.toUpperCase()}
                       </span>
                     </div>
@@ -1166,7 +1165,7 @@ function App() {
               <div style={{display:'flex', gap:4, alignItems:'center'}}>
                 <Ic.blurGauss/>
                 <div style={{flex:1, display:'flex', alignItems:'center', gap:2,
-                             fontSize:10, fontWeight:700, lineHeight:1,
+                             fontSize:10, fontWeight:500, lineHeight:1,
                              border:'1px solid var(--border)', borderRadius:'var(--rs)',
                              padding:'4px 8px', background:'transparent', cursor:'ew-resize',
                              transition:'border-color 0.12s, color 0.12s',
@@ -1174,7 +1173,7 @@ function App() {
                      onMouseDown={dragBlur.onMouseDown}>
                   <input className="no-spin" type="number" value={blurAmount} min={1}
                     onChange={e => setBlurAmount(parseInt(e.target.value)||1)}
-                    style={{width:28, border:'none', background:'transparent', fontSize:10, fontWeight:700,
+                    style={{width:28, border:'none', background:'transparent', fontSize:10, fontWeight:500,
                             color:'var(--t1)', textAlign:'right', outline:'none', padding:0,
                             cursor:'ew-resize'}}
                   />
@@ -1242,7 +1241,7 @@ function App() {
                         const sz=bytes>=1048576?(bytes/1048576).toFixed(1)+' MB':(bytes/1024).toFixed(0)+' KB';
                         return (
                           <button key={fmt}
-                            style={{display:'block',width:'100%',padding:'7px 12px',fontSize:10,fontWeight:700,letterSpacing:'0.06em',background:'transparent',border:'none',color:'var(--t1)',cursor:'pointer',textAlign:'left'}}
+                            style={{display:'block',width:'100%',padding:'7px 12px',fontSize:10,fontWeight:500,letterSpacing:'0.06em',background:'transparent',border:'none',color:'var(--t1)',cursor:'pointer',textAlign:'left'}}
                             onMouseEnter={e=>e.currentTarget.style.background='var(--bg)'}
                             onMouseLeave={e=>e.currentTarget.style.background='transparent'}
                             title={`~${sz}`}
@@ -1312,7 +1311,7 @@ function App() {
                             fill="none" stroke={sa.color} strokeWidth="0.5"
                             strokeDasharray={sa.dash}
                           />
-                          <text x={inX+4} y={inY+10} fill={sa.color} fontSize="8" fontWeight="700" fontFamily="monospace">{sa.label}</text>
+                          <text x={inX+4} y={inY+10} fill={sa.color} fontSize="8" fontWeight="500" fontFamily="inherit">{sa.label}</text>
                         </g>
                       );
                     })}
@@ -1357,11 +1356,11 @@ function App() {
             <div style={{display:'flex', alignItems:'center', gap:12, marginTop:10, flexWrap:'wrap'}}>
               {natRatio && (
                 <div style={{display:'flex', alignItems:'center', gap:8, fontSize:11, color:'var(--t2)', fontVariantNumeric:'tabular-nums'}}>
-                  <span style={{fontWeight:700, color:'var(--t1)'}}>{natRatio}</span>
+                  <span style={{fontWeight:500, color:'var(--t1)'}}>{natRatio}</span>
 <span>{imgNat.w}×{imgNat.h}</span>
                   <button
                     onClick={()=>{ setWidth(imgNat.w); setHeight(imgNat.h); setTpl(null); resetZoom(); const r=imgNat.w/imgNat.h; let best=null,bestD=9999; for(const ar of RATIOS){const d=Math.abs(r-ar.w/ar.h);if(d<bestD){bestD=d;best=ar;}} if(best)setRatio(best); }}
-                    style={{fontSize:9, fontWeight:700, color:'var(--t2)', background:'transparent', border:'1px solid var(--border)', borderRadius:'var(--rs)', padding:'2px 7px', cursor:'pointer'}}
+                    style={{fontSize:9, fontWeight:500, color:'var(--t2)', background:'transparent', border:'1px solid var(--border)', borderRadius:'var(--rs)', padding:'2px 7px', cursor:'pointer'}}
                     title="Reset output to source dimensions"
                   >↩</button>
                 </div>
@@ -1369,7 +1368,7 @@ function App() {
               {showImg && imgSrc && (
                 <div style={{display:'flex', gap:6, marginLeft:'auto', alignItems:'center'}}>
                   <div style={{display:'flex', alignItems:'center', gap:2,
-                               fontSize:10, fontWeight:700, lineHeight:1,
+                               fontSize:10, fontWeight:500, lineHeight:1,
                                border:'1px solid var(--border)', borderRadius:'var(--rs)',
                                padding:'4px 8px', background:'transparent', cursor:'ew-resize',
                                transition:'border-color 0.12s, color 0.12s'}}
@@ -1379,7 +1378,7 @@ function App() {
                        }}>
                     <input className="no-spin" type="number" value={imgZoom} min={10} max={1000}
                       onChange={e => { setImgZoom(parseInt(e.target.value)||100); setImgOff({x:0,y:0}); }}
-                      style={{width:28, border:'none', background:'transparent', fontSize:10, fontWeight:700,
+                      style={{width:28, border:'none', background:'transparent', fontSize:10, fontWeight:500,
                               color:'var(--t1)', textAlign:'right', outline:'none', padding:0,
                               cursor:'ew-resize'}}
                     />
@@ -1440,7 +1439,7 @@ function App() {
 
         {/* ── Presets ── */}
         <details className="card">
-          <summary style={{padding:'10px 14px',fontSize:10,fontWeight:700,color:'var(--t3)',letterSpacing:'0.05em',cursor:'pointer',listStyle:'none',display:'flex',alignItems:'center',gap:6}}>
+          <summary style={{padding:'10px 14px',fontSize:10,fontWeight:500,color:'var(--t3)',letterSpacing:'0.05em',cursor:'pointer',listStyle:'none',display:'flex',alignItems:'center',gap:6}}>
             <span style={{flex:1}}>PRESETS</span>
           </summary>
           <div style={{borderTop:'1px solid var(--border)', padding:'8px 10px 4px'}}>
