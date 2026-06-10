@@ -470,8 +470,8 @@ export default function App() {
   const dragInputWrapStyle: CSSProperties = {
     flex: 1, display: 'flex', alignItems: 'center', gap: 6,
     fontSize: 10, fontWeight: 500, lineHeight: 1,
-    border: '1px solid var(--border)', borderRadius: 'var(--rs)',
-    padding: '6px 8px', background: 'transparent', cursor: 'ew-resize',
+    borderRadius: 'var(--rs)',
+    padding: '6px 8px', cursor: 'ew-resize',
     transition: 'border-color 0.12s, color 0.12s',
   };
 
@@ -561,13 +561,7 @@ export default function App() {
                   <select
                     value={paletteMode}
                     onChange={handlePaletteModeChange}
-                    style={{
-                      width: '100%', fontSize: 10, fontWeight: 500, letterSpacing: '0.04em',
-                      border: '1px solid var(--border)', borderRadius: 'var(--rs)',
-                      background: 'var(--bg)', color: 'var(--t1)', padding: '6px 20px 6px 8px',
-                      cursor: 'pointer', outline: 'none', appearance: 'none', WebkitAppearance: 'none',
-                      fontFamily: 'inherit',
-                    }}>
+                    className="glass-select">
                     {(['DARK', 'BRIGHT', 'VIVID', 'WARM', 'COLD', 'TRITONE'] as PaletteMode[]).map(m => (
                       <option key={m} value={m}>{m}</option>
                     ))}
@@ -625,7 +619,7 @@ export default function App() {
           <div className="card">
             <div className="card-inner" style={{ padding: '8px 14px' }}>
               <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
-                <div style={{ ...dragInputWrapStyle, opacity: showBlur ? 1 : 0.45 }}
+                <div className="glass-pill" style={{ ...dragInputWrapStyle, opacity: showBlur ? 1 : 0.45 }}
                      onMouseDown={dragBlur.onMouseDown}>
                   <Ic.blurGauss/>
                   <input className="no-spin" type="number" value={blurAmount} min={1}
@@ -692,12 +686,9 @@ export default function App() {
                       <Ic.download/>
                     </button>
                     {showFmtMenu && (
-                      <div style={{ position: 'absolute', right: 0, top: 'calc(100% + 4px)', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--rs)', zIndex: 20, overflow: 'hidden', minWidth: 64 }}>
+                      <div className="fmt-menu">
                         {(['jpg', 'png'] as const).map(fmt => (
                           <button key={fmt}
-                            style={{ display: 'block', width: '100%', padding: '7px 12px', fontSize: 10, fontWeight: 500, letterSpacing: '0.06em', background: 'transparent', border: 'none', color: 'var(--t1)', cursor: 'pointer', textAlign: 'left' }}
-                            onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg)')}
-                            onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
                             onClick={() => { exportImg(fmt); setShowFmtMenu(false); }}>
                             {fmt.toUpperCase()}
                           </button>
@@ -806,17 +797,19 @@ export default function App() {
                         for (const ar of RATIOS) { const d = Math.abs(r - ar.w / ar.h); if (d < bestD) { bestD = d; best = ar; } }
                         if (best) setRatio(best);
                       }}
-                      style={{ fontSize: 9, fontWeight: 500, color: 'var(--t2)', background: 'transparent', border: '1px solid var(--border)', borderRadius: 'var(--rs)', padding: '2px 7px', cursor: 'pointer' }}
+                      className="glass-pill"
+                      style={{ fontSize: 9, fontWeight: 500, color: 'var(--t2)', borderRadius: 'var(--rs)', padding: '2px 7px', cursor: 'pointer' }}
                       title="Reset Position"
                     >↩</button>
                   </div>
                 )}
                 {showImg && imgSrc && (
                   <div style={{ display: 'flex', gap: 6, marginLeft: 'auto', alignItems: 'center' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 2,
+                    <div className="glass-pill"
+                         style={{ display: 'flex', alignItems: 'center', gap: 2,
                                  fontSize: 10, fontWeight: 500, lineHeight: 1,
-                                 border: '1px solid var(--border)', borderRadius: 'var(--rs)',
-                                 padding: '4px 8px', background: 'transparent', cursor: 'ew-resize',
+                                 borderRadius: 'var(--rs)',
+                                 padding: '4px 8px', cursor: 'ew-resize',
                                  transition: 'border-color 0.12s, color 0.12s' }}
                          onMouseDown={e => {
                            if (e.altKey) { e.preventDefault(); resetZoom(); return; }

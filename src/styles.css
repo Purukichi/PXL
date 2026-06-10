@@ -8,8 +8,18 @@
   --t1:      #1e1d1b;
   --t2:      #5c5a55;
   --t3:      #a09e99;
-  --r:       10px;
-  --rs:      7px;
+  --r:       18px;
+  --rs:      10px;
+
+  /* liquid glass tokens — derived from the palette above, no new hues */
+  --glass:           color-mix(in srgb, var(--surface) 52%, transparent);
+  --glass-strong:    color-mix(in srgb, var(--surface) 72%, transparent);
+  --glass-border:    color-mix(in srgb, var(--border) 70%, transparent);
+  --glass-inset:     color-mix(in srgb, var(--bg) 45%, transparent);
+  --glass-highlight: rgba(255,255,255,0.65);
+  --glass-shadow:    0 10px 34px color-mix(in srgb, var(--t1) 9%, transparent),
+                     0 1px 2px  color-mix(in srgb, var(--t1) 6%, transparent);
+  --glass-blur:      blur(22px) saturate(1.5);
 }
 /* ── Dark theme ── */
 .dark {
@@ -19,6 +29,14 @@
   --t1:      #e8e6df;
   --t2:      #8c8a84;
   --t3:      #55534f;
+
+  --glass:           color-mix(in srgb, var(--surface) 48%, transparent);
+  --glass-strong:    color-mix(in srgb, var(--surface) 70%, transparent);
+  --glass-border:    color-mix(in srgb, var(--border) 75%, transparent);
+  --glass-inset:     color-mix(in srgb, var(--bg) 45%, transparent);
+  --glass-highlight: rgba(255,255,255,0.08);
+  --glass-shadow:    0 10px 34px rgba(0,0,0,0.38),
+                     0 1px 2px  rgba(0,0,0,0.3);
 }
 
 body {
@@ -30,13 +48,28 @@ body {
   transition: background 0.35s, color 0.35s;
   zoom: 1.15;
 }
+/* ambient depth behind the glass — same palette tones only */
+body::before {
+  content: '';
+  position: fixed; inset: 0; z-index: -1;
+  background:
+    radial-gradient(900px 600px at 12% -8%,  color-mix(in srgb, var(--surface) 85%, transparent), transparent 60%),
+    radial-gradient(800px 600px at 95% 12%,  color-mix(in srgb, var(--border) 55%, transparent),  transparent 65%),
+    radial-gradient(1000px 800px at 50% 115%, color-mix(in srgb, var(--border) 45%, transparent), transparent 60%),
+    var(--bg);
+  transition: background 0.35s;
+}
 button { font-family: inherit; cursor: pointer; }
 
 /* ── Top bar ── */
 .topbar {
   position: sticky; top: 0; z-index: 100;
-  background: var(--surface);
-  border-bottom: 1px solid var(--border);
+  background: var(--glass-strong);
+  -webkit-backdrop-filter: var(--glass-blur);
+  backdrop-filter: var(--glass-blur);
+  border-bottom: 1px solid var(--glass-border);
+  box-shadow: inset 0 1px 0 var(--glass-highlight),
+              0 4px 18px color-mix(in srgb, var(--t1) 5%, transparent);
   padding: 0 24px;
   display: flex; align-items: center; height: 46px; gap: 8px;
 }
@@ -46,14 +79,25 @@ button { font-family: inherit; cursor: pointer; }
 .page { max-width: 1100px; margin: 0 auto; padding: 20px 20px 56px; display: flex; flex-direction: column; gap: 14px; }
 
 /* ── Card ── */
-.card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r); }
+.card {
+  background: var(--glass);
+  -webkit-backdrop-filter: var(--glass-blur);
+  backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--r);
+  box-shadow: inset 0 1px 0 var(--glass-highlight),
+              inset 0 -1px 0 color-mix(in srgb, var(--t1) 3%, transparent),
+              var(--glass-shadow);
+}
 .card-inner { padding: 16px 18px; }
 .card-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
 
 /* ── Preview ── */
 .preview-area {
   position: relative; border-radius: var(--rs);
-  background: var(--bg);
+  background: var(--glass-inset);
+  box-shadow: inset 0 1px 3px color-mix(in srgb, var(--t1) 7%, transparent),
+              inset 0 -1px 0 var(--glass-highlight);
   display: flex; align-items: center; justify-content: center;
   height: 480px;
   flex-shrink: 0; flex:1;
@@ -93,14 +137,22 @@ button { font-family: inherit; cursor: pointer; }
 }
 .drop-hint span { font-size: 10px; font-weight: 500; opacity: 0.55; }
 .drop-overlay {
-  position: absolute; inset: 0; background: rgba(0,0,0,0.06);
+  position: absolute; inset: 0;
+  background: var(--glass);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
   border: 2px dashed var(--t2); border-radius: var(--rs);
   display: flex; align-items: center; justify-content: center; z-index: 10;
 }
 
 .pv-badge-r {
   position: absolute; top: -24px; left: 50%; transform: translateX(-50%);
-  background: var(--t1); color: var(--surface);
+  background: color-mix(in srgb, var(--t1) 88%, transparent);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  color: var(--surface);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.18),
+              0 2px 8px color-mix(in srgb, var(--t1) 25%, transparent);
   font-size: 10px; font-weight: 500; letter-spacing: 0.02em;
   padding: 3px 9px; border-radius: 99px; white-space: nowrap; z-index: 5;
   pointer-events: none;
@@ -108,27 +160,45 @@ button { font-family: inherit; cursor: pointer; }
 .zoom-action-btn {
   display: inline-flex; align-items: center; justify-content: center;
   font-size: 10px; font-weight: 500; color: var(--t3);
-  border: 1px solid var(--border); border-radius: var(--rs);
-  padding: 4px 8px; background: transparent; transition: all 0.12s;
+  border: 1px solid var(--glass-border); border-radius: var(--rs);
+  padding: 4px 8px;
+  background: color-mix(in srgb, var(--surface) 35%, transparent);
+  box-shadow: inset 0 1px 0 var(--glass-highlight);
+  transition: all 0.12s;
   white-space: nowrap; line-height: 1;
 }
-.zoom-action-btn:hover { border-color: var(--t2); color: var(--t2); }
+.zoom-action-btn:hover { border-color: var(--t2); color: var(--t2); background: var(--glass-strong); }
 
 /* draggable input */
 .drag-input-wrap { position: relative; }
 .drag-input-wrap input { cursor: ew-resize; }
 .drag-input-wrap input:focus { cursor: text; }
 
+/* glass pill (inline draggable value wrappers) */
+.glass-pill {
+  border: 1px solid var(--glass-border);
+  background: color-mix(in srgb, var(--surface) 35%, transparent);
+  box-shadow: inset 0 1px 0 var(--glass-highlight);
+}
+
 /* ── Ratio chips ── */
 .ratio-grid { display: flex; flex-wrap: wrap; gap: 5px; }
 .ratio-chip {
-  border: 1px solid var(--border); border-radius: var(--rs);
-  padding: 5px 6px; background: transparent;
+  border: 1px solid var(--glass-border); border-radius: var(--rs);
+  padding: 5px 6px;
+  background: color-mix(in srgb, var(--surface) 30%, transparent);
+  box-shadow: inset 0 1px 0 var(--glass-highlight);
   display: flex; flex-direction: column; align-items: center; gap: 3px;
   transition: all 0.22s; color: var(--t1); min-width: 52px;
 }
-.ratio-chip:hover { border-color: var(--t2); background: var(--bg); }
-.ratio-chip.active { border-color: var(--t1); background: var(--t1); color: var(--surface); }
+.ratio-chip:hover { border-color: var(--t2); background: var(--glass-strong); }
+.ratio-chip.active {
+  border-color: var(--t1);
+  background: color-mix(in srgb, var(--t1) 90%, transparent);
+  color: var(--surface);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.18),
+              0 3px 10px color-mix(in srgb, var(--t1) 22%, transparent);
+}
 .ratio-chip .rl { font-size: 10px; font-weight: 500; letter-spacing: -0.01em; }
 
 /* ── Input panel ── */
@@ -139,41 +209,62 @@ button { font-family: inherit; cursor: pointer; }
   width: 100%; padding: 7px 8px;
   font-size: 17px; font-weight: 500; letter-spacing: -0.02em;
   font-family: inherit; font-variant-numeric: tabular-nums;
-  border: 1px solid var(--border); border-radius: var(--rs);
-  background: var(--bg); color: var(--t1); outline: none;
-  transition: border-color 0.13s; -moz-appearance: textfield;
+  border: 1px solid var(--glass-border); border-radius: var(--rs);
+  background: var(--glass-inset);
+  box-shadow: inset 0 1px 2px color-mix(in srgb, var(--t1) 5%, transparent);
+  color: var(--t1); outline: none;
+  transition: border-color 0.13s, background 0.13s; -moz-appearance: textfield;
 }
 .input-grp input::-webkit-outer-spin-button,
 .input-grp input::-webkit-inner-spin-button { -webkit-appearance: none; }
 .no-spin::-webkit-outer-spin-button,
 .no-spin::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
 .no-spin { -moz-appearance: textfield; }
-.input-grp input:focus { border-color: var(--t2); background: var(--surface); }
+.input-grp input:focus { border-color: var(--t2); background: var(--glass-strong); }
 .lock-btn {
   display: flex; align-items: center; justify-content: center;
   width: 30px; height: 30px; border-radius: 50%;
-  border: 1px solid var(--border); background: transparent;
+  border: 1px solid var(--glass-border);
+  background: color-mix(in srgb, var(--surface) 35%, transparent);
+  box-shadow: inset 0 1px 0 var(--glass-highlight);
   transition: all 0.13s; color: var(--t3); margin-top: 17px;
 }
-.lock-btn:hover { border-color: var(--t2); color: var(--t2); }
-.lock-btn.locked { border-color: var(--t1); background: var(--t1); color: var(--surface); }
+.lock-btn:hover { border-color: var(--t2); color: var(--t2); background: var(--glass-strong); }
+.lock-btn.locked {
+  border-color: var(--t1);
+  background: color-mix(in srgb, var(--t1) 90%, transparent);
+  color: var(--surface);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.18),
+              0 3px 10px color-mix(in srgb, var(--t1) 22%, transparent);
+}
 
 /* ── Templates ── */
 .cat-tab {
   display: flex; align-items: center; justify-content: center;
   width: 32px; height: 32px; border-radius: var(--rs);
-  border: 1px solid var(--border); background: transparent;
+  border: 1px solid var(--glass-border);
+  background: color-mix(in srgb, var(--surface) 30%, transparent);
+  box-shadow: inset 0 1px 0 var(--glass-highlight);
   color: var(--t3); transition: all 0.12s;
 }
-.cat-tab:hover { border-color: var(--t2); color: var(--t2); }
-.cat-tab.active { background: var(--t1); border-color: var(--t1); color: var(--surface); }
+.cat-tab:hover { border-color: var(--t2); color: var(--t2); background: var(--glass-strong); }
+.cat-tab.active {
+  background: color-mix(in srgb, var(--t1) 90%, transparent);
+  border-color: var(--t1); color: var(--surface);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.18),
+              0 3px 10px color-mix(in srgb, var(--t1) 22%, transparent);
+}
 .tpl-item {
   display: flex; align-items: center; justify-content: space-between;
   padding: 7px 9px; border-radius: var(--rs); cursor: pointer;
   border: 1px solid transparent; transition: all 0.1s; gap: 6px;
 }
-.tpl-item:hover { background: var(--bg); border-color: var(--border); }
-.tpl-item.active { background: var(--border); border-color: var(--border); }
+.tpl-item:hover { background: var(--glass-inset); border-color: var(--glass-border); }
+.tpl-item.active {
+  background: color-mix(in srgb, var(--border) 65%, transparent);
+  border-color: var(--glass-border);
+  box-shadow: inset 0 1px 0 var(--glass-highlight);
+}
 .tpl-left { display: flex; align-items: center; gap: 6px; min-width: 0; }
 .tpl-name { font-size: 11px; font-weight: 500; color: var(--t1); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .tpl-size { font-size: 10px; color: var(--t3); font-variant-numeric: tabular-nums; font-weight: 500; flex-shrink: 0; }
@@ -181,20 +272,66 @@ button { font-family: inherit; cursor: pointer; }
 /* ── Icon buttons ── */
 .ic-btn {
   display: flex; align-items: center; justify-content: center;
-  border: 1px solid var(--border); border-radius: var(--rs);
-  padding: 6px; background: transparent;
+  border: 1px solid var(--glass-border); border-radius: var(--rs);
+  padding: 6px;
+  background: color-mix(in srgb, var(--surface) 30%, transparent);
+  box-shadow: inset 0 1px 0 var(--glass-highlight);
   color: var(--t3); transition: all 0.12s;
 }
-.ic-btn:hover { border-color: var(--t2); color: var(--t2); }
-.ic-btn.on { background: var(--t1); border-color: var(--t1); color: var(--surface); }
+.ic-btn:hover { border-color: var(--t2); color: var(--t2); background: var(--glass-strong); }
+.ic-btn.on {
+  background: color-mix(in srgb, var(--t1) 90%, transparent);
+  border-color: var(--t1); color: var(--surface);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.18),
+              0 3px 10px color-mix(in srgb, var(--t1) 22%, transparent);
+}
+
+/* ── Select (palette mode) ── */
+.glass-select {
+  width: 100%; font-size: 10px; font-weight: 500; letter-spacing: 0.04em;
+  border: 1px solid var(--glass-border); border-radius: var(--rs);
+  background: var(--glass-inset);
+  box-shadow: inset 0 1px 0 var(--glass-highlight);
+  color: var(--t1); padding: 6px 20px 6px 8px;
+  cursor: pointer; outline: none; appearance: none; -webkit-appearance: none;
+  font-family: inherit;
+  transition: border-color 0.12s;
+}
+.glass-select:hover { border-color: var(--t2); }
+
+/* ── Format menu (export dropdown) ── */
+.fmt-menu {
+  position: absolute; right: 0; top: calc(100% + 4px);
+  background: var(--glass-strong);
+  -webkit-backdrop-filter: var(--glass-blur);
+  backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--rs);
+  box-shadow: inset 0 1px 0 var(--glass-highlight), var(--glass-shadow);
+  z-index: 20; overflow: hidden; min-width: 64px;
+}
+.fmt-menu button {
+  display: block; width: 100%; padding: 7px 12px;
+  font-size: 10px; font-weight: 500; letter-spacing: 0.06em;
+  background: transparent; border: none; color: var(--t1);
+  cursor: pointer; text-align: left; transition: background 0.1s;
+}
+.fmt-menu button:hover { background: var(--glass-inset); }
 
 /* dark toggle */
 .dark-toggle {
   display: flex; align-items: center; gap: 5px;
-  border: 1px solid var(--border); border-radius: 99px;
-  padding: 4px 10px; background: transparent;
+  border: 1px solid var(--glass-border); border-radius: 99px;
+  padding: 4px 10px;
+  background: color-mix(in srgb, var(--surface) 30%, transparent);
+  box-shadow: inset 0 1px 0 var(--glass-highlight);
   font-size: 10px; font-weight: 500; color: var(--t3);
   transition: all 0.13s; letter-spacing: 0.04em;
 }
-.dark-toggle:hover { border-color: var(--t2); color: var(--t2); }
-.dark-toggle.on { background: var(--t1); border-color: var(--t1); color: var(--surface); }
+.dark-toggle:hover { border-color: var(--t2); color: var(--t2); background: var(--glass-strong); }
+.dark-toggle.on {
+  background: color-mix(in srgb, var(--t1) 90%, transparent);
+  border-color: var(--t1); color: var(--surface);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.18),
+              0 3px 10px color-mix(in srgb, var(--t1) 22%, transparent);
+}
