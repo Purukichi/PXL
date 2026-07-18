@@ -115,15 +115,20 @@ button { font-family: inherit; cursor: pointer; }
 }
 .zoom-action-btn:hover { border-color: var(--t2); color: var(--t2); }
 
-/* paste button (hover-reveal) */
+/* paste button (hover-reveal, bottom of preview) */
 .paste-btn {
-  position: absolute; top: 12px; left: 50%; transform: translateX(-50%);
+  position: absolute; bottom: 12px; left: 50%; transform: translateX(-50%);
   z-index: 15; opacity: 0; pointer-events: none;
+  display: inline-flex; align-items: center; gap: 6px;
   padding: 5px 12px; font-size: 10px; font-weight: 500; letter-spacing: 0.08em;
   color: var(--surface); background: var(--t1);
   border: 1px solid var(--t1); border-radius: var(--rs);
   font-family: inherit; cursor: pointer;
   transition: opacity 0.15s;
+}
+.paste-btn .kbd {
+  font-size: 9px; letter-spacing: 0.02em; opacity: 0.6;
+  padding: 1px 4px; border: 1px solid currentColor; border-radius: 3px;
 }
 .preview-area:hover .paste-btn { opacity: 1; pointer-events: auto; }
 .paste-btn:hover { opacity: 0.85; }

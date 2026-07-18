@@ -258,6 +258,30 @@ export default function App() {
   const onFileDragEnter = (e: ReactDragEvent) => { e.preventDefault(); dragCounterRef.current++; setFileDrag(true); };
   const onFileDragLeave = () => { dragCounterRef.current--; if (dragCounterRef.current <= 0) { dragCounterRef.current = 0; setFileDrag(false); } };
 
+  const loadBlobAsImage = (blob: Blob, type: string) => {
+    const ext = type.split('/')[1] || 'png';
+    loadFile(new File([blob], `pasted.${ext}`, { type }));
+    setShowImg(true);
+  };
+
+  // Global paste (Ctrl/Cmd+V): image lands directly, no browser confirmation
+  useEffect(() => {
+    const onPaste = (e: ClipboardEvent) => {
+      const items = e.clipboardData?.items;
+      if (!items) return;
+      for (const it of items) {
+        if (it.kind === 'file' && it.type.startsWith('image/')) {
+          const f = it.getAsFile();
+          if (f) { e.preventDefault(); loadFile(f); setShowImg(true); return; }
+        }
+      }
+    };
+    window.addEventListener('paste', onPaste);
+    return () => window.removeEventListener('paste', onPaste);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Button click fallback: uses async Clipboard API (Chrome shows confirm popup)
   const pasteFromClipboard = async () => {
     try {
       const items = await navigator.clipboard.read();
@@ -265,9 +289,7 @@ export default function App() {
         const imageType = item.types.find(t => t.startsWith('image/'));
         if (imageType) {
           const blob = await item.getType(imageType);
-          const ext = imageType.split('/')[1] || 'png';
-          loadFile(new File([blob], `pasted.${ext}`, { type: imageType }));
-          setShowImg(true);
+          loadBlobAsImage(blob, imageType);
           return;
         }
       }
@@ -736,8 +758,11 @@ export default function App() {
                   <button
                     className="paste-btn"
                     onClick={e => { e.stopPropagation(); pasteFromClipboard(); }}
-                    title="Paste from clipboard"
-                  >paste</button>
+                    title="Or press ⌘V / Ctrl+V to paste instantly"
+                  >
+                    paste
+                    <span className="kbd">⌘V</span>
+                  </button>
 
                   <div className="pv-wrap" ref={pvWrapRef} style={{ width: pvW, height: pvH }}>
                     <div
