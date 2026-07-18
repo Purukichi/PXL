@@ -69,6 +69,7 @@ button { font-family: inherit; cursor: pointer; }
 }
 .pv-canvas.has-img { cursor: grab; }
 .pv-canvas.has-img.panning { cursor: grabbing; }
+.pv-canvas.empty { cursor: pointer; }
 .pv-img {
   position: absolute;
   transform-origin: center center;
@@ -113,6 +114,19 @@ button { font-family: inherit; cursor: pointer; }
   white-space: nowrap; line-height: 1;
 }
 .zoom-action-btn:hover { border-color: var(--t2); color: var(--t2); }
+
+/* paste button (hover-reveal) */
+.paste-btn {
+  position: absolute; top: 12px; left: 50%; transform: translateX(-50%);
+  z-index: 15; opacity: 0; pointer-events: none;
+  padding: 5px 12px; font-size: 10px; font-weight: 500; letter-spacing: 0.08em;
+  color: var(--surface); background: var(--t1);
+  border: 1px solid var(--t1); border-radius: var(--rs);
+  font-family: inherit; cursor: pointer;
+  transition: opacity 0.15s;
+}
+.preview-area:hover .paste-btn { opacity: 1; pointer-events: auto; }
+.paste-btn:hover { opacity: 0.85; }
 
 /* draggable input */
 .drag-input-wrap { position: relative; }

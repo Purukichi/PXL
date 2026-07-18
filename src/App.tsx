@@ -258,6 +258,24 @@ export default function App() {
   const onFileDragEnter = (e: ReactDragEvent) => { e.preventDefault(); dragCounterRef.current++; setFileDrag(true); };
   const onFileDragLeave = () => { dragCounterRef.current--; if (dragCounterRef.current <= 0) { dragCounterRef.current = 0; setFileDrag(false); } };
 
+  const pasteFromClipboard = async () => {
+    try {
+      const items = await navigator.clipboard.read();
+      for (const item of items) {
+        const imageType = item.types.find(t => t.startsWith('image/'));
+        if (imageType) {
+          const blob = await item.getType(imageType);
+          const ext = imageType.split('/')[1] || 'png';
+          loadFile(new File([blob], `pasted.${ext}`, { type: imageType }));
+          setShowImg(true);
+          return;
+        }
+      }
+    } catch {
+      /* clipboard denied or no image */
+    }
+  };
+
   // Image pan: h-snap → X only moves, v-snap → Y only moves
   const onCanvasMouseDown = (e: ReactMouseEvent) => {
     if (!showImg || !imgSrc) return;
@@ -368,9 +386,6 @@ export default function App() {
       });
       ctx.setLineDash([]);
     }
-    ctx.strokeStyle = dark ? '#e8e6df' : '#1e1d1b';
-    ctx.lineWidth = 1;
-    ctx.strokeRect(0.5, 0.5, cW - 1, cH - 1);
     const ratio_str = `${width}x${height}`;
     const base = imgFileName || 'image';
     const a = document.createElement('a');
@@ -718,12 +733,18 @@ export default function App() {
                   onDragLeave={onFileDragLeave}
                 >
                   {fileDrag && <div className="drop-overlay"><Ic.drop/></div>}
+                  <button
+                    className="paste-btn"
+                    onClick={e => { e.stopPropagation(); pasteFromClipboard(); }}
+                    title="Paste from clipboard"
+                  >paste</button>
 
                   <div className="pv-wrap" ref={pvWrapRef} style={{ width: pvW, height: pvH }}>
                     <div
-                      className={`pv-canvas${showImg && imgSrc ? ' has-img' : ''}${panning ? ' panning' : ''}`}
+                      className={`pv-canvas${showImg && imgSrc ? ' has-img' : ''}${showImg && !imgSrc ? ' empty' : ''}${panning ? ' panning' : ''}`}
                       style={{ position: 'absolute', inset: 0 }}
                       onMouseDown={onCanvasMouseDown}
+                      onClick={() => { if (showImg && !imgSrc) fileRef.current?.click(); }}
                     >
                       {showImg && imgSrc && (
                         <img
