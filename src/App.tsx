@@ -5,17 +5,41 @@ import { RATIOS, TEMPLATES, SAFE_AREAS } from './data';
 import {
   computeScale, getBodyZoom, toRatio, detectRatio,
   computeHistogram, sampleColor, extractPaletteWithPositions,
+  GUIDE_MODES, guideLines, formatColor, stepDownSource,
 } from './utils';
+import type { GuideMode, ColorFmt } from './utils';
+
+type ExportFmt = 'jpg' | 'png' | 'webp';
+type Prefs = {
+  ratio: string; linked: boolean; width: number; height: number; dark: boolean;
+  paletteMode: PaletteMode; colorFmt: ColorFmt; guide: GuideMode;
+  exportFmt: ExportFmt; exportQuality: number; exportOverlays: boolean;
+};
+const PREFS_KEY = 'pxl:prefs:v1';
+const loadPrefs = (): Partial<Prefs> => {
+  try { return JSON.parse(localStorage.getItem(PREFS_KEY) || '{}') as Partial<Prefs>; } catch { return {}; }
+};
+const MIME: Record<ExportFmt, string> = { jpg: 'image/jpeg', png: 'image/png', webp: 'image/webp' };
+const EXT: Record<string, string> = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp' };
+type Menu = 'export' | 'guides' | 'keys' | null;
+
+const SHORTCUTS: [string, string][] = [
+  ['O', 'Choose image'], ['⌘V', 'Paste image'], ['⌘S', 'Export'],
+  ['R', 'Swap orientation'], ['L', 'Lock aspect ratio'], ['G', 'Cycle guides'],
+  ['S', 'Safe area'], ['H', 'Show / hide image'], ['M', 'Monochrome'],
+  ['B', 'Gaussian blur'], ['0', 'Reset zoom'],
+];
 import { RatioChip } from './RatioChip';
 import type {
   Histogram, ImgNat, PaletteMode, Picker, Ratio, SnapMode, Template, Vec2,
 } from './types';
 
 export default function App() {
-  const [ratio,    setRatio]   = useState<Ratio>(RATIOS[3]);
-  const [linked,   setLinked]  = useState<boolean>(true);
-  const [width,    setWidth]   = useState<number>(1920);
-  const [height,   setHeight]  = useState<number>(1080);
+  const prefs = useRef<Partial<Prefs>>(loadPrefs()).current;
+  const [ratio,    setRatio]   = useState<Ratio>(() => RATIOS.find(r => r.label === prefs.ratio) ?? RATIOS[3]);
+  const [linked,   setLinked]  = useState<boolean>(prefs.linked ?? true);
+  const [width,    setWidth]   = useState<number>(prefs.width ?? 1920);
+  const [height,   setHeight]  = useState<number>(prefs.height ?? 1080);
   const [cat,      setCat]     = useState<string>('all');
   const [tpl,      setTpl]     = useState<string | null>(null);
 
@@ -59,7 +83,13 @@ export default function App() {
     blurAmountRef.current = val; setBlurAmount_(val);
   };
 
-  const [paletteMode, setPaletteMode] = useState<PaletteMode>('VIVID');
+  const [paletteMode, setPaletteMode] = useState<PaletteMode>(prefs.paletteMode ?? 'VIVID');
+  const [colorFmt,    setColorFmt]    = useState<ColorFmt>(prefs.colorFmt ?? 'HEX');
+  const [guide,       setGuide]       = useState<GuideMode>(prefs.guide ?? 'none');
+  const [exportFmt,     setExportFmt]     = useState<ExportFmt>(prefs.exportFmt ?? 'jpg');
+  const [exportQuality, setExportQuality] = useState<number>(prefs.exportQuality ?? 100);
+  const [exportOverlays, setExportOverlays] = useState<boolean>(prefs.exportOverlays ?? false);
+  const [sizeCopied, setSizeCopied] = useState<boolean>(false);
   const [pickerData,  setPickerData]  = useState<Picker[] | null>(null);
   const [copiedColor, setCopiedColor] = useState<string | null>(null);
   const [histogram,   setHistogram]   = useState<Histogram | null>(null);
@@ -67,11 +97,13 @@ export default function App() {
   const histAnimRef    = useRef<number | null>(null);
   const [displayHistogram, setDisplayHistogram_] = useState<Histogram | null>(null);
   const setDisplayHistogram = (v: Histogram | null) => { displayHistRef.current = v; setDisplayHistogram_(v); };
-  const [showFmtMenu, setShowFmtMenu] = useState<boolean>(false);
+  const [openMenu, setOpenMenu] = useState<Menu>(null);
+  const toggleMenu = (m: Menu) => setOpenMenu(cur => (cur === m ? null : m));
   const [showPickerDots, setShowPickerDots] = useState<boolean>(true);
 
   // Theme
   const [dark, setDark] = useState<boolean>(() => {
+    if (typeof prefs.dark === 'boolean') return prefs.dark;
     const forced = document.documentElement.getAttribute('data-theme');
     if (forced) return forced === 'dark';
     return window.matchMedia?.('(prefers-color-scheme: dark)').matches ?? false;
@@ -84,7 +116,7 @@ export default function App() {
   const [pvAreaW, setPvAreaW] = useState<number>(600);
   const [pvAreaH, setPvAreaH] = useState<number>(320);
 
-  const paletteModeRef   = useRef<PaletteMode>('VIVID');
+  const paletteModeRef   = useRef<PaletteMode>(prefs.paletteMode ?? 'VIVID');
   const initialPickerRef = useRef<Picker[] | null>(null);
   const histTimerRef     = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -100,11 +132,19 @@ export default function App() {
 
   // Close format menu on outside click
   useEffect(() => {
-    if (!showFmtMenu) return;
-    const close = () => setShowFmtMenu(false);
+    if (!openMenu) return;
+    const close = () => setOpenMenu(null);
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setOpenMenu(null); };
     document.addEventListener('click', close);
-    return () => document.removeEventListener('click', close);
-  }, [showFmtMenu]);
+    document.addEventListener('keydown', onKey);
+    return () => { document.removeEventListener('click', close); document.removeEventListener('keydown', onKey); };
+  }, [openMenu]);
+
+  // Remember preferences between visits
+  useEffect(() => {
+    const p: Prefs = { ratio: ratio.label, linked, width, height, dark, paletteMode, colorFmt, guide, exportFmt, exportQuality, exportOverlays };
+    try { localStorage.setItem(PREFS_KEY, JSON.stringify(p)); } catch { /* storage unavailable */ }
+  }, [ratio, linked, width, height, dark, paletteMode, colorFmt, guide, exportFmt, exportQuality, exportOverlays]);
 
   // Measure preview-area container for dynamic pvW/pvH
   useEffect(() => {
@@ -373,17 +413,26 @@ export default function App() {
     });
   });
 
-  // ── Export (JPG or PNG) ──────────────────────────────────────────────────
-  const exportImg = (fmt: 'jpg' | 'png') => {
+  // ── Export ───────────────────────────────────────────────────────────────
+  // Notes on quality:
+  // - Chromium's JPEG encoder subsamples chroma (4:2:0) at any quality below 1.0,
+  //   which smears saturated edges. Quality defaults to 100% (4:4:4).
+  // - Large downscales are stepped (stepDownSource) with high smoothing to avoid aliasing.
+  // - toBlob avoids huge base64 data URLs.
+  const exportImg = (fmt: ExportFmt = exportFmt) => {
     const cW = width, cH = height;
+    if (!cW || !cH) return;
     const canvas = document.createElement('canvas');
     canvas.width = cW; canvas.height = cH;
     const ctx = canvas.getContext('2d')!;
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = 'high';
     if (fmt === 'jpg') {
-      ctx.fillStyle = dark ? '#000000' : '#ffffff';
+      ctx.fillStyle = '#ffffff';
       ctx.fillRect(0, 0, cW, cH);
     }
-    if (imgSrc && imgRef.current) {
+    const pxScale = cW / pvW; // output px per preview px
+    if (imgSrc && imgRef.current && showImg) {
       const img = imgRef.current;
       ctx.save();
       ctx.beginPath(); ctx.rect(0, 0, cW, cH); ctx.clip();
@@ -395,32 +444,71 @@ export default function App() {
       const ih = img.naturalHeight * outScale;
       const ix = cW / 2 + imgOff.x * ratioScale - iw / 2;
       const iy = cH / 2 + imgOff.y * ratioScale - ih / 2;
-      const filters = [showBW ? 'grayscale(1)' : '', showBlur ? `blur(${blurAmount}px)` : ''].filter(Boolean);
+      // Blur radius is set in preview pixels; scale it so the export matches what you see.
+      const filters = [showBW ? 'grayscale(1)' : '', showBlur ? `blur(${blurAmount * ratioScale}px)` : ''].filter(Boolean);
       if (filters.length) ctx.filter = filters.join(' ');
-      ctx.drawImage(img, ix, iy, iw, ih);
+      ctx.drawImage(stepDownSource(img, iw, ih), ix, iy, iw, ih);
       ctx.restore();
     }
-    if (showSafe) {
-      SAFE_AREAS.forEach(sa => {
-        const inX = cW * (1 - sa.pct) / 2;
-        const inY = cH * (1 - sa.pct) / 2;
-        ctx.strokeStyle = sa.color;
-        ctx.lineWidth = 0.5;
-        ctx.setLineDash(sa.dash ? sa.dash.split(',').map(Number) : []);
-        ctx.strokeRect(inX, inY, cW - inX * 2, cH - inY * 2);
-      });
-      ctx.setLineDash([]);
+    if (exportOverlays) {
+      const lw = Math.max(1, pxScale);
+      if (guide !== 'none') {
+        guideLines(guide, cW, cH).forEach(([x1, y1, x2, y2]) => {
+          ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2);
+          ctx.strokeStyle = 'rgba(0,0,0,0.35)'; ctx.lineWidth = lw * 2; ctx.stroke();
+          ctx.strokeStyle = 'rgba(255,255,255,0.85)'; ctx.lineWidth = lw; ctx.stroke();
+        });
+      }
+      if (showSafe) {
+        SAFE_AREAS.forEach(sa => {
+          const inX = cW * (1 - sa.pct) / 2;
+          const inY = cH * (1 - sa.pct) / 2;
+          ctx.setLineDash([]);
+          ctx.strokeStyle = 'rgba(0,0,0,0.35)';
+          ctx.lineWidth = lw * 2;
+          ctx.strokeRect(inX, inY, cW - inX * 2, cH - inY * 2);
+          ctx.strokeStyle = sa.color;
+          ctx.lineWidth = lw;
+          ctx.setLineDash(sa.dash ? sa.dash.split(',').map(n => Number(n) * pxScale) : []);
+          ctx.strokeRect(inX, inY, cW - inX * 2, cH - inY * 2);
+        });
+        ctx.setLineDash([]);
+      }
     }
-    const ratio_str = `${width}x${height}`;
-    const base = imgFileName || 'image';
-    const a = document.createElement('a');
-    a.download = `${base}_${ratio_str}.${fmt}`;
-    a.href = fmt === 'jpg'
-      ? canvas.toDataURL('image/jpeg', 0.93)
-      : canvas.toDataURL('image/png');
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
+    const q = fmt === 'png' ? undefined : exportQuality / 100;
+    canvas.toBlob(blob => {
+      if (!blob) return;
+      const ext = EXT[blob.type] ?? fmt; // browsers without WebP encoding fall back to PNG
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.download = `${imgFileName || 'image'}_${cW}x${cH}.${ext}`;
+      a.href = url;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(url), 4000);
+    }, MIME[fmt], q);
+  };
+
+  const copyText = async (text: string) => {
+    try { await navigator.clipboard.writeText(text); return true; } catch { return false; }
+  };
+  const copyColor = (hex: string) => {
+    copyText(formatColor(hex, colorFmt));
+    setCopiedColor(hex); setTimeout(() => setCopiedColor(null), 1500);
+  };
+  const copyAllColors = () => {
+    if (!pickerData) return;
+    copyText(pickerData.map(c => formatColor(c.hex, colorFmt)).join('\n'));
+    setCopiedColor('__all'); setTimeout(() => setCopiedColor(null), 1500);
+  };
+  const copySize = () => {
+    copyText(`${width}×${height}`);
+    setSizeCopied(true); setTimeout(() => setSizeCopied(false), 1500);
+  };
+  const cycleGuide = () => {
+    const ids = GUIDE_MODES.map(g => g.id);
+    setGuide(g => ids[(ids.indexOf(g) + 1) % ids.length]);
   };
 
   const clearImage = () => {
@@ -507,6 +595,34 @@ export default function App() {
     setTpl(null);
   };
 
+  // Keyboard shortcuts (latest handler kept in a ref so the listener is registered once)
+  const keyHandlerRef = useRef<(e: KeyboardEvent) => void>(() => {});
+  keyHandlerRef.current = (e: KeyboardEvent) => {
+    const t = e.target as HTMLElement | null;
+    if (t && (t.tagName === 'INPUT' || t.tagName === 'SELECT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return;
+    if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 's') { e.preventDefault(); exportImg(); return; }
+    if (e.metaKey || e.ctrlKey || e.altKey) return;
+    switch (e.key.toLowerCase()) {
+      case 'o': setShowImg(true); fileRef.current?.click(); break;
+      case 'r': rotateAspect(); break;
+      case 'l': setLinked(v => !v); break;
+      case 'g': cycleGuide(); break;
+      case 's': setShowSafe(v => !v); break;
+      case 'h': setShowImg(v => !v); break;
+      case 'm': setShowBW(v => !v); break;
+      case 'b': setShowBlur(!showBlurRef.current); break;
+      case '0': resetZoom(); break;
+      case '?': toggleMenu('keys'); break;
+      default: return;
+    }
+    e.preventDefault();
+  };
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => keyHandlerRef.current(e);
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
+
   const sortedRatios = [...RATIOS].sort((a, b) => b.w / b.h - a.w / a.h);
   const CAT_LABELS: Record<string, string> = {
     all: 'All', display: 'Display', video: 'Video', social: 'Social',
@@ -529,6 +645,20 @@ export default function App() {
           <div className="logo">PXL</div>
           <div className="nav-spacer"/>
           <a className="nav-link" href="https://x.com/Purukichi3" target="_blank" rel="noopener noreferrer">{'> ⇀ <'}</a>
+          <div style={{ position: 'relative' }}>
+            <button className={`ic-btn${openMenu === 'keys' ? ' on' : ''}`} title="Keyboard shortcuts (?)" aria-label="Keyboard shortcuts"
+              onClick={e => { e.stopPropagation(); toggleMenu('keys'); }}>
+              <Ic.keyboard/>
+            </button>
+            {openMenu === 'keys' && (
+              <div className="menu keys-menu" onClick={e => e.stopPropagation()}>
+                <div className="menu-label">Keyboard shortcuts</div>
+                {SHORTCUTS.map(([k, label]) => (
+                  <div key={k} className="key-row"><span>{label}</span><kbd>{k}</kbd></div>
+                ))}
+              </div>
+            )}
+          </div>
           <button className="ic-btn" onClick={() => setDark(d => !d)} title={dark ? 'Light mode' : 'Dark mode'} aria-label="Toggle theme">
             {dark ? <Ic.sun/> : <Ic.moon/>}
           </button>
@@ -548,7 +678,7 @@ export default function App() {
                   <div className="sec-title">Aspect Ratio</div>
                   <div className="sec-sub">{detR || toRatio(width, height)}</div>
                 </div>
-                <button className="ic-btn" onClick={rotateAspect} title="Swap orientation (90°)" aria-label="Swap orientation">
+                <button className="ic-btn" onClick={rotateAspect} title="Swap orientation (R)" aria-label="Swap orientation">
                   <Ic.rotate/>
                 </button>
               </div>
@@ -608,19 +738,29 @@ export default function App() {
                 <div className="sec-title">Colors</div>
                 <div className="toolbar">
                   <button className="ic-btn" onClick={resetPalette} disabled={!pickerData} title="Reset picks" aria-label="Reset picks"><Ic.refresh/></button>
-                  <button className="ic-btn" onClick={rerollPalette} disabled={!imgSrc} title="Shuffle" aria-label="Shuffle"><Ic.dice/></button>
+                  <button className="ic-btn" onClick={rerollPalette} disabled={!imgSrc} title="Shuffle" aria-label="Shuffle"><Ic.shuffle/></button>
+                  <button className={`ic-btn${copiedColor === '__all' ? ' on' : ''}`} onClick={copyAllColors} disabled={!pickerData} title={`Copy all as ${colorFmt}`} aria-label="Copy all colors">
+                    {copiedColor === '__all' ? <Ic.check/> : <Ic.copy/>}
+                  </button>
                   <button className={`ic-btn${showPickerDots ? ' on' : ''}`} onClick={() => setShowPickerDots(v => !v)} title="Show pickers" aria-label="Show pickers">
                     {showPickerDots ? <Ic.eyeOn/> : <Ic.eyeOff/>}
                   </button>
                 </div>
               </div>
-              <div className="select-wrap">
-                <select value={paletteMode} onChange={handlePaletteModeChange} aria-label="Palette mode">
-                  {(['DARK', 'BRIGHT', 'VIVID', 'WARM', 'COLD', 'TRITONE'] as PaletteMode[]).map(m => (
-                    <option key={m} value={m}>{m.charAt(0) + m.slice(1).toLowerCase()}</option>
+              <div className="colors-ctl">
+                <div className="select-wrap">
+                  <select id="palette-mode" value={paletteMode} onChange={handlePaletteModeChange} aria-label="Palette mode">
+                    {(['DARK', 'BRIGHT', 'VIVID', 'WARM', 'COLD', 'TRITONE'] as PaletteMode[]).map(m => (
+                      <option key={m} value={m}>{m.charAt(0) + m.slice(1).toLowerCase()}</option>
+                    ))}
+                  </select>
+                  <Ic.chevronDown/>
+                </div>
+                <div className="seg" role="group" aria-label="Copy format">
+                  {(['HEX', 'RGB', 'HSL'] as ColorFmt[]).map(f => (
+                    <button key={f} className={colorFmt === f ? 'on' : ''} onClick={() => setColorFmt(f)}>{f}</button>
                   ))}
-                </select>
-                <Ic.chevronDown/>
+                </div>
               </div>
               {pickerData ? (
                 <div className="swatches">
@@ -628,10 +768,10 @@ export default function App() {
                     <div key={i} className="swatch">
                       <button
                         className="swatch-chip"
-                        onClick={() => { navigator.clipboard.writeText(c.hex); setCopiedColor(c.hex); setTimeout(() => setCopiedColor(null), 1500); }}
+                        onClick={() => copyColor(c.hex)}
                         style={{ background: c.hex }}
-                        title={`Copy ${c.hex.toUpperCase()}`}
-                        aria-label={`Copy ${c.hex.toUpperCase()}`}
+                        title={`Copy ${formatColor(c.hex, colorFmt)}`}
+                        aria-label={`Copy ${formatColor(c.hex, colorFmt)}`}
                       />
                       <span className={`swatch-hex${copiedColor === c.hex ? ' copied' : ''}`}>
                         {copiedColor === c.hex ? 'Copied' : c.hex.toUpperCase().slice(1)}
@@ -653,13 +793,13 @@ export default function App() {
               </div>
               <div className="adj-row">
                 <div className="adj-icon"><Ic.bw/></div>
-                <span className="adj-label">Monochrome</span>
+                <span className="adj-label">Monochrome <kbd>M</kbd></span>
                 <button className={`switch${showBW ? ' on' : ''}`} role="switch" aria-checked={showBW} aria-label="Monochrome"
                   onClick={() => setShowBW(v => !v)}/>
               </div>
               <div className="adj-row" style={{ flexWrap: 'wrap' }}>
-                <div className="adj-icon"><Ic.blurGauss/></div>
-                <span className="adj-label">Gaussian Blur</span>
+                <div className="adj-icon"><Ic.blur/></div>
+                <span className="adj-label">Gaussian Blur <kbd>B</kbd></span>
                 <button className={`switch${showBlur ? ' on' : ''}`} role="switch" aria-checked={showBlur} aria-label="Gaussian blur"
                   onClick={() => setShowBlur(!showBlur)}/>
                 <div className="adj-slider" style={{ width: '100%' }}>
@@ -682,7 +822,7 @@ export default function App() {
           {/* Preview */}
           <section className="card">
             <div className="card-inner">
-              <div className="card-head">
+              <div className="card-head preview-head">
                 <div>
                   <div className="sec-title">Preview</div>
                   <div className="sec-sub">{width || '—'} × {height || '—'} px{tpl ? ` · ${tpl}` : ''}</div>
@@ -693,25 +833,65 @@ export default function App() {
                   {showImg && imgSrc && (
                     <button className="ic-btn danger" onClick={clearImage} title="Remove image" aria-label="Remove image"><Ic.trash/></button>
                   )}
-                  <button className="ic-btn" onClick={() => { setShowImg(true); fileRef.current?.click(); }} title="Choose image" aria-label="Choose image"><Ic.upload/></button>
-                  <button className={`ic-btn${showSafe ? ' on' : ''}`} onClick={() => setShowSafe(v => !v)} title="Safe area" aria-label="Safe area"><Ic.safe/></button>
-                  <button className={`ic-btn${showImg ? ' on' : ''}`} onClick={() => setShowImg(v => !v)} title="Show image" aria-label="Show image">
+                  <button className="ic-btn" onClick={() => { setShowImg(true); fileRef.current?.click(); }} title="Choose image (O)" aria-label="Choose image"><Ic.upload/></button>
+                  <div style={{ position: 'relative' }}>
+                    <button className={`ic-btn${guide !== 'none' ? ' on' : ''}`} title="Composition guides (G)" aria-label="Composition guides"
+                      onClick={e => { e.stopPropagation(); toggleMenu('guides'); }}><Ic.guides/></button>
+                    {openMenu === 'guides' && (
+                      <div className="menu" onClick={e => e.stopPropagation()}>
+                        <div className="menu-label">Guides</div>
+                        {GUIDE_MODES.map(g => (
+                          <button key={g.id} className={`menu-item${guide === g.id ? ' sel' : ''}`} onClick={() => { setGuide(g.id); setOpenMenu(null); }}>
+                            {g.label}{guide === g.id && <Ic.check size={14}/>}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  <button className={`ic-btn${showSafe ? ' on' : ''}`} onClick={() => setShowSafe(v => !v)} title="Safe area (S)" aria-label="Safe area"><Ic.safe/></button>
+                  <button className={`ic-btn${showImg ? ' on' : ''}`} onClick={() => setShowImg(v => !v)} title="Show image (H)" aria-label="Show image">
                     {showImg ? <Ic.eyeOn/> : <Ic.eyeOff/>}
                   </button>
                   <div className="tb-sep"/>
                   <div style={{ position: 'relative' }}>
-                    <button className="btn-primary"
-                      onClick={e => { e.stopPropagation(); setShowFmtMenu(v => !v); }}>
+                    <button className="btn-primary" aria-expanded={openMenu === 'export'}
+                      onClick={e => { e.stopPropagation(); toggleMenu('export'); }}>
                       <Ic.download/> Export
                     </button>
-                    {showFmtMenu && (
-                      <div className="menu">
-                        {(['jpg', 'png'] as const).map(fmt => (
-                          <button key={fmt} onClick={() => { exportImg(fmt); setShowFmtMenu(false); }}>
-                            {fmt.toUpperCase()}
-                            <span>{width}×{height}</span>
-                          </button>
-                        ))}
+                    {openMenu === 'export' && (
+                      <div className="menu export-menu" onClick={e => e.stopPropagation()}>
+                        <div className="menu-label">Format</div>
+                        <div className="seg seg-full" role="group" aria-label="Format">
+                          {(['jpg', 'png', 'webp'] as ExportFmt[]).map(f => (
+                            <button key={f} className={exportFmt === f ? 'on' : ''} onClick={() => setExportFmt(f)}>{f.toUpperCase()}</button>
+                          ))}
+                        </div>
+                        {exportFmt !== 'png' ? (
+                          <>
+                            <div className="menu-label menu-label-row">
+                              <span>Quality</span><span className="menu-val">{exportQuality}%</span>
+                            </div>
+                            <div className="menu-range">
+                              <input id="export-quality" className="range" type="range" min={50} max={100} value={exportQuality}
+                                style={{ ['--p' as string]: `${(exportQuality - 50) * 2}%` }}
+                                onChange={e => setExportQuality(parseInt(e.target.value) || 100)} aria-label="Quality"/>
+                            </div>
+                            <div className="menu-note">
+                              {exportFmt === 'jpg' && exportQuality < 100
+                                ? 'Below 100%, browsers halve color resolution. Reds and fine edges may blur.'
+                                : exportFmt === 'jpg' ? 'Full color resolution. Largest file.' : 'Smaller files with transparency support.'}
+                            </div>
+                          </>
+                        ) : (
+                          <div className="menu-note">Lossless, keeps transparency.</div>
+                        )}
+                        <label className="menu-check">
+                          <input id="export-overlays" type="checkbox" checked={exportOverlays} onChange={e => setExportOverlays(e.target.checked)}/>
+                          Include guides and safe area
+                        </label>
+                        <button className="btn-primary btn-block" onClick={() => { exportImg(); setOpenMenu(null); }}>
+                          Save {width} × {height} {exportFmt.toUpperCase()}
+                        </button>
                       </div>
                     )}
                   </div>
@@ -773,13 +953,30 @@ export default function App() {
                             <rect
                               x={inX} y={inY}
                               width={pvW - inX * 2} height={pvH - inY * 2}
-                              fill="none" stroke={sa.color} strokeWidth="0.75"
+                              fill="none" stroke="rgba(0,0,0,0.35)" strokeWidth="2"
+                            />
+                            <rect
+                              x={inX} y={inY}
+                              width={pvW - inX * 2} height={pvH - inY * 2}
+                              fill="none" stroke={sa.color} strokeWidth="1"
                               strokeDasharray={sa.dash}
                             />
-                            <text x={inX + 6} y={inY + 14} fill={sa.color} fontSize="10" fontWeight="500" fontFamily="inherit">{sa.label}</text>
+                            <text x={inX + 6} y={inY + 14} fill={sa.color} stroke="rgba(0,0,0,0.45)" strokeWidth="2" paintOrder="stroke"
+                              fontSize="10" fontWeight="600" fontFamily="inherit">{sa.label}</text>
                           </g>
                         );
                       })}
+                    </svg>
+                  )}
+
+                  {guide !== 'none' && (
+                    <svg className="pv-safe" viewBox={`0 0 ${pvW} ${pvH}`} width={pvW} height={pvH} aria-hidden="true">
+                      {guideLines(guide, pvW, pvH).map(([x1, y1, x2, y2], k) => (
+                        <g key={k}>
+                          <line x1={x1} y1={y1} x2={x2} y2={y2} stroke="rgba(0,0,0,0.3)" strokeWidth="2"/>
+                          <line x1={x1} y1={y1} x2={x2} y2={y2} stroke="rgba(255,255,255,0.85)" strokeWidth="1"/>
+                        </g>
+                      ))}
                     </svg>
                   )}
 
@@ -825,12 +1022,12 @@ export default function App() {
                   <div style={{ display: 'flex', gap: 8, marginLeft: 'auto', alignItems: 'center' }}>
                     <div className="seg">
                       <button className={snapMode === 'h' ? 'on' : ''} title="Fit height" aria-label="Fit height"
-                        onClick={() => { setSnapMode('h'); resetZoom(); }}><Ic.snapH/></button>
+                        onClick={() => { setSnapMode('h'); resetZoom(); }}><Ic.fitH/></button>
                       <button className={snapMode === 'v' ? 'on' : ''} title="Fit width" aria-label="Fit width"
-                        onClick={() => { setSnapMode('v'); resetZoom(); }}><Ic.snapV/></button>
+                        onClick={() => { setSnapMode('v'); resetZoom(); }}><Ic.fitW/></button>
                     </div>
                     <div className="seg">
-                      <div className="seg-input" title="Drag to zoom · Alt+click to reset"
+                      <div className="seg-input" title="Drag to zoom · Alt+click or 0 to reset"
                         onMouseDown={e => {
                           if (e.altKey) { e.preventDefault(); resetZoom(); return; }
                           dragZoom.onMouseDown(e);
@@ -854,7 +1051,12 @@ export default function App() {
             <div className="card-inner">
               <div className="card-head">
                 <div className="sec-title">Dimensions</div>
-                <span className="sec-sub">Drag a field horizontally to adjust</span>
+                <div className="toolbar">
+                  <span className="sec-sub hint">Drag a field sideways to adjust</span>
+                  <button className={`ic-btn${sizeCopied ? ' on' : ''}`} onClick={copySize} title="Copy size" aria-label="Copy size">
+                    {sizeCopied ? <Ic.check/> : <Ic.copy/>}
+                  </button>
+                </div>
               </div>
               <div className="input-row">
                 <label className="dim-field drag-input-wrap">
@@ -866,7 +1068,7 @@ export default function App() {
                   <span className="dim-unit">px</span>
                 </label>
                 <button className={`lock-btn${linked ? ' locked' : ''}`}
-                  title={linked ? 'Aspect ratio locked' : 'Aspect ratio free'}
+                  title={linked ? 'Aspect ratio locked (L)' : 'Aspect ratio free (L)'}
                   aria-label={linked ? 'Unlock aspect ratio' : 'Lock aspect ratio'}
                   onClick={() => setLinked(l => !l)}>
                   {linked ? <Ic.lock/> : <Ic.unlock/>}

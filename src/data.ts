@@ -108,5 +108,5 @@ export const TEMPLATES: Template[] = [
 ];
 
 export const SAFE_AREAS: SafeArea[] = [
-  { label: 'Safe Area (5/6)', pct: 5/6, color: 'rgba(57,255,20,0.9)', dash: '' },
+  { label: 'Safe Area (5/6)', pct: 5/6, color: 'rgba(255,255,255,0.9)', dash: '' },
 ];

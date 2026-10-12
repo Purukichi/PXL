@@ -19,7 +19,7 @@ export function RatioChip({ ar, active, onClick }: Props) {
         <rect
           x={(cW - rw) / 2} y={(cH - rh) / 2} width={rw} height={rh}
           fill="currentColor" fillOpacity={active ? 0.18 : 0.08}
-          stroke="currentColor" strokeWidth="1.3" rx="1.5"
+          stroke="currentColor" strokeWidth="1.5" rx="1.5"
         />
       </svg>
       <span className="rl">{ar.label}</span>
