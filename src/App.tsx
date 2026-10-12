@@ -463,6 +463,10 @@ export default function App() {
         SAFE_AREAS.forEach(sa => {
           const inX = cW * (1 - sa.pct) / 2;
           const inY = cH * (1 - sa.pct) / 2;
+          ctx.setLineDash([]);
+          ctx.strokeStyle = 'rgba(0,0,0,0.35)';
+          ctx.lineWidth = lw * 2;
+          ctx.strokeRect(inX, inY, cW - inX * 2, cH - inY * 2);
           ctx.strokeStyle = sa.color;
           ctx.lineWidth = lw;
           ctx.setLineDash(sa.dash ? sa.dash.split(',').map(n => Number(n) * pxScale) : []);
@@ -949,10 +953,16 @@ export default function App() {
                             <rect
                               x={inX} y={inY}
                               width={pvW - inX * 2} height={pvH - inY * 2}
-                              fill="none" stroke={sa.color} strokeWidth="0.75"
+                              fill="none" stroke="rgba(0,0,0,0.35)" strokeWidth="2"
+                            />
+                            <rect
+                              x={inX} y={inY}
+                              width={pvW - inX * 2} height={pvH - inY * 2}
+                              fill="none" stroke={sa.color} strokeWidth="1"
                               strokeDasharray={sa.dash}
                             />
-                            <text x={inX + 6} y={inY + 14} fill={sa.color} fontSize="10" fontWeight="500" fontFamily="inherit">{sa.label}</text>
+                            <text x={inX + 6} y={inY + 14} fill={sa.color} stroke="rgba(0,0,0,0.45)" strokeWidth="2" paintOrder="stroke"
+                              fontSize="10" fontWeight="600" fontFamily="inherit">{sa.label}</text>
                           </g>
                         );
                       })}
