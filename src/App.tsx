@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import type { CSSProperties, MouseEvent as ReactMouseEvent, DragEvent as ReactDragEvent, ChangeEvent as ReactChangeEvent } from 'react';
+import type { MouseEvent as ReactMouseEvent, DragEvent as ReactDragEvent, ChangeEvent as ReactChangeEvent } from 'react';
 import { Ic, CAT_ICONS } from './icons';
 import { RATIOS, TEMPLATES, SAFE_AREAS } from './data';
 import {
@@ -71,7 +71,11 @@ export default function App() {
   const [showPickerDots, setShowPickerDots] = useState<boolean>(true);
 
   // Theme
-  const [dark, setDark] = useState<boolean>(false);
+  const [dark, setDark] = useState<boolean>(() => {
+    const forced = document.documentElement.getAttribute('data-theme');
+    if (forced) return forced === 'dark';
+    return window.matchMedia?.('(prefers-color-scheme: dark)').matches ?? false;
+  });
 
   const fileRef    = useRef<HTMLInputElement | null>(null);
   const imgRef     = useRef<HTMLImageElement | null>(null);
@@ -368,7 +372,6 @@ export default function App() {
       return (nx === prev.x && ny === prev.y) ? prev : { x: nx, y: ny };
     });
   });
-  const dragBlur = makeDragInput(() => blurAmount, setBlurAmount);
 
   // ── Export (JPG or PNG) ──────────────────────────────────────────────────
   const exportImg = (fmt: 'jpg' | 'png') => {
@@ -377,7 +380,7 @@ export default function App() {
     canvas.width = cW; canvas.height = cH;
     const ctx = canvas.getContext('2d')!;
     if (fmt === 'jpg') {
-      ctx.fillStyle = dark ? '#181715' : '#f0efe9';
+      ctx.fillStyle = dark ? '#000000' : '#ffffff';
       ctx.fillRect(0, 0, cW, cH);
     }
     if (imgSrc && imgRef.current) {
@@ -504,239 +507,209 @@ export default function App() {
     setTpl(null);
   };
 
-  const dragInputWrapStyle: CSSProperties = {
-    flex: 1, display: 'flex', alignItems: 'center', gap: 6,
-    fontSize: 10, fontWeight: 500, lineHeight: 1,
-    border: '1px solid var(--border)', borderRadius: 'var(--rs)',
-    padding: '6px 8px', background: 'transparent', cursor: 'ew-resize',
-    transition: 'border-color 0.12s, color 0.12s',
+  const sortedRatios = [...RATIOS].sort((a, b) => b.w / b.h - a.w / a.h);
+  const CAT_LABELS: Record<string, string> = {
+    all: 'All', display: 'Display', video: 'Video', social: 'Social',
+    mobile: 'Mobile', print: 'Print', music: 'Music',
+  };
+  const BLUR_MAX = 100;
+  const resetToNative = () => {
+    setWidth(imgNat.w); setHeight(imgNat.h); setTpl(null); resetZoom();
+    const r = imgNat.w / imgNat.h;
+    let best: Ratio | null = null, bestD = 9999;
+    for (const ar of RATIOS) { const d = Math.abs(r - ar.w / ar.h); if (d < bestD) { bestD = d; best = ar; } }
+    if (best) setRatio(best);
   };
 
   return (
     <div>
-      {/* ── Topbar ── */}
-      <div className="topbar">
-        <div className="logo">PXL</div>
-        <button className={`dark-toggle${dark ? ' on' : ''}`} onClick={() => setDark(d => !d)}>
-          {dark ? <Ic.sun/> : <Ic.moon/>}
-        </button>
-      </div>
+      {/* ── Global nav ── */}
+      <nav className="topbar">
+        <div className="topbar-inner">
+          <div className="logo">PXL <small>Pixel finder for designers</small></div>
+          <div className="nav-spacer"/>
+          <a className="nav-link" href="https://x.com/Purukichi3" target="_blank" rel="noopener noreferrer">{'> ⇀ <'}</a>
+          <button className="ic-btn" onClick={() => setDark(d => !d)} title={dark ? 'Light mode' : 'Dark mode'} aria-label="Toggle theme">
+            {dark ? <Ic.sun/> : <Ic.moon/>}
+          </button>
+        </div>
+      </nav>
 
-      <div className="page" style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 14 }}>
+      <div className="page">
 
-        {/* ── Left sidebar ── */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 10, width: 220, flexShrink: 0 }}>
-          <div className="card">
+        {/* ── Sidebar ── */}
+        <aside className="sidebar">
+
+          {/* Aspect ratio */}
+          <section className="card">
             <div className="card-inner">
-              {[
-                { svg: <svg width="16" height="10" viewBox="0 0 16 10" fill="none" stroke="currentColor" strokeWidth="1.4"><rect x="0.7" y="0.7" width="14.6" height="8.6" rx="1"/></svg>, list: RATIOS.filter(r => r.w > r.h) },
-                { svg: <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.4"><rect x="0.7" y="0.7" width="10.6" height="10.6" rx="1"/></svg>, list: RATIOS.filter(r => r.w === r.h) },
-              ].map((group, i) => (
-                group.list.length ? (
-                  <div key={i} style={{ marginBottom: 8 }}>
-                    <div style={{ color: 'var(--t3)', marginBottom: 5, opacity: 0.7 }}>{group.svg}</div>
-                    <div className="ratio-grid">
-                      {group.list.map(ar2 => (
-                        <RatioChip key={ar2.label} ar={ar2} active={ratio.label === ar2.label}
-                          onClick={() => { setRatio(ar2); setHeight(Math.round(width * ar2.h / ar2.w)); }} />
-                      ))}
-                    </div>
-                  </div>
-                ) : null
-              ))}
-              <button className="ic-btn"
-                style={{ width: '100%', marginTop: 4, gap: 6, justifyContent: 'center' }}
-                onClick={rotateAspect} title="90°">
-                <Ic.rotate/>
-              </button>
+              <div className="card-head">
+                <div>
+                  <div className="sec-title">Aspect Ratio</div>
+                  <div className="sec-sub">{detR || toRatio(width, height)}</div>
+                </div>
+                <button className="ic-btn" onClick={rotateAspect} title="Swap orientation (90°)" aria-label="Swap orientation">
+                  <Ic.rotate/>
+                </button>
+              </div>
+              <div className="ratio-grid">
+                {sortedRatios.map(ar2 => (
+                  <RatioChip key={ar2.label} ar={ar2} active={ratio.label === ar2.label}
+                    onClick={() => { setRatio(ar2); setHeight(Math.round(width * ar2.h / ar2.w)); setTpl(null); }} />
+                ))}
+              </div>
             </div>
-          </div>
+          </section>
 
-          {/* ── Luminance Histogram ── */}
-          <div className="card">
-            <div className="card-inner" style={{ padding: '12px 14px' }}>
+          {/* Histogram */}
+          <section className="card">
+            <div className="card-inner">
+              <div className="card-head" style={{ marginBottom: 10 }}>
+                <div className="sec-title">Histogram</div>
+              </div>
               {displayHistogram ? (() => {
                 const dh = displayHistogram;
-                const W = 192, H = 56, N = dh.r.length;
+                const W = 260, H = 72, N = dh.r.length;
                 const maxVal = Math.max(...dh.lum, ...dh.r, ...dh.g, ...dh.b, 1);
                 const toPath = (bins: number[]) => {
-                  const pts = bins.map((v, i) => `${(i / N * W).toFixed(1)},${(H - v / maxVal * H * 0.93).toFixed(1)}`).join(' L ');
+                  const pts = bins.map((v, i) => `${(i / (N - 1) * W).toFixed(1)},${(H - v / maxVal * H * 0.93).toFixed(1)}`).join(' L ');
                   return `M 0,${H} L ${pts} L ${W},${H} Z`;
                 };
                 return (
                   <div>
-                    <svg width="100%" height={H} viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" style={{ display: 'block', borderRadius: 3, overflow: 'hidden' }}>
-                      <path d={toPath(dh.r)}   fill="rgba(255,70,70,0.4)"/>
-                      <path d={toPath(dh.g)}   fill="rgba(50,190,80,0.4)"/>
-                      <path d={toPath(dh.b)}   fill="rgba(60,120,255,0.4)"/>
-                      <path d={toPath(dh.lum)} fill="var(--t1)" opacity="0.25"/>
+                    <svg width="100%" height={H} viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none"
+                      style={{ display: 'block', borderRadius: 8, overflow: 'hidden', background: 'var(--fill)', mixBlendMode: 'normal' }}>
+                      <path d={toPath(dh.r)}   fill="rgba(255,59,48,0.45)"/>
+                      <path d={toPath(dh.g)}   fill="rgba(52,199,89,0.45)"/>
+                      <path d={toPath(dh.b)}   fill="rgba(0,122,255,0.45)"/>
+                      <path d={toPath(dh.lum)} fill="var(--t1)" opacity="0.18"/>
                     </svg>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 5, fontSize: 8, color: 'var(--t3)', fontWeight: 500 }}>
-                      <span>DARK</span>
-                      <div style={{ display: 'flex', gap: 5 }}>
-                        <span style={{ color: 'rgba(255,70,70,0.8)' }}>R</span>
-                        <span style={{ color: 'rgba(50,190,80,0.9)' }}>G</span>
-                        <span style={{ color: 'rgba(80,140,255,0.9)' }}>B</span>
+                    <div className="hist-legend">
+                      <span>Shadows</span>
+                      <div className="rgb">
+                        <span style={{ color: '#ff3b30' }}>R</span>
+                        <span style={{ color: '#34c759' }}>G</span>
+                        <span style={{ color: '#007aff' }}>B</span>
                       </div>
-                      <span>LIGHT</span>
+                      <span>Highlights</span>
                     </div>
                   </div>
                 );
               })() : (
-                <div style={{ height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <span style={{ fontSize: 9, color: 'var(--t3)' }}>—</span>
-                </div>
+                <div className="empty-note">Add an image to see its tonal range.</div>
               )}
             </div>
-          </div>
+          </section>
 
-          {/* ── Color Palette ── */}
-          <div className="card">
-            <div className="card-inner" style={{ padding: '10px 14px' }}>
-              <div style={{ display: 'flex', gap: 4, marginBottom: 8, alignItems: 'center' }}>
-                <div style={{ position: 'relative', flex: 1 }}>
-                  <select
-                    value={paletteMode}
-                    onChange={handlePaletteModeChange}
-                    style={{
-                      width: '100%', fontSize: 10, fontWeight: 500, letterSpacing: '0.04em',
-                      border: '1px solid var(--border)', borderRadius: 'var(--rs)',
-                      background: 'var(--bg)', color: 'var(--t1)', padding: '6px 20px 6px 8px',
-                      cursor: 'pointer', outline: 'none', appearance: 'none', WebkitAppearance: 'none',
-                      fontFamily: 'inherit',
-                    }}>
-                    {(['DARK', 'BRIGHT', 'VIVID', 'WARM', 'COLD', 'TRITONE'] as PaletteMode[]).map(m => (
-                      <option key={m} value={m}>{m}</option>
-                    ))}
-                  </select>
-                  <svg style={{ position: 'absolute', right: 5, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }}
-                    width="8" height="8" viewBox="0 0 8 8" fill="none" stroke="var(--t3)" strokeWidth="1.4">
-                    <polyline points="1,2.5 4,5.5 7,2.5"/>
-                  </svg>
+          {/* Palette */}
+          <section className="card">
+            <div className="card-inner">
+              <div className="card-head">
+                <div className="sec-title">Colors</div>
+                <div className="toolbar">
+                  <button className="ic-btn" onClick={resetPalette} disabled={!pickerData} title="Reset picks" aria-label="Reset picks"><Ic.refresh/></button>
+                  <button className="ic-btn" onClick={rerollPalette} disabled={!imgSrc} title="Shuffle" aria-label="Shuffle"><Ic.dice/></button>
+                  <button className={`ic-btn${showPickerDots ? ' on' : ''}`} onClick={() => setShowPickerDots(v => !v)} title="Show pickers" aria-label="Show pickers">
+                    {showPickerDots ? <Ic.eyeOn/> : <Ic.eyeOff/>}
+                  </button>
                 </div>
-                <button className="ic-btn" onClick={resetPalette} disabled={!pickerData} title="Reset"><Ic.refresh/></button>
-                <button className="ic-btn" onClick={rerollPalette} disabled={!imgSrc} title="Random"><Ic.dice/></button>
-                <button className={`ic-btn${showPickerDots ? ' on' : ''}`} onClick={() => setShowPickerDots(v => !v)} title="On/Off">
-                  {showPickerDots ? <Ic.eyeOn/> : <Ic.eyeOff/>}
-                </button>
+              </div>
+              <div className="select-wrap">
+                <select value={paletteMode} onChange={handlePaletteModeChange} aria-label="Palette mode">
+                  {(['DARK', 'BRIGHT', 'VIVID', 'WARM', 'COLD', 'TRITONE'] as PaletteMode[]).map(m => (
+                    <option key={m} value={m}>{m.charAt(0) + m.slice(1).toLowerCase()}</option>
+                  ))}
+                </select>
+                <Ic.chevronDown/>
               </div>
               {pickerData ? (
-                <div style={{ display: 'flex', gap: 4 }}>
+                <div className="swatches">
                   {pickerData.map((c, i) => (
-                    <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3 }}>
-                      <div
+                    <div key={i} className="swatch">
+                      <button
+                        className="swatch-chip"
                         onClick={() => { navigator.clipboard.writeText(c.hex); setCopiedColor(c.hex); setTimeout(() => setCopiedColor(null), 1500); }}
-                        style={{ width: '100%', height: 24, background: c.hex, borderRadius: 'var(--rs)', cursor: 'pointer', border: '1px solid rgba(0,0,0,0.1)', transition: 'transform 0.1s' }}
-                        onMouseEnter={e => (e.currentTarget.style.transform = 'scale(1.08)')}
-                        onMouseLeave={e => (e.currentTarget.style.transform = 'scale(1)')}
-                        title="Get!"
+                        style={{ background: c.hex }}
+                        title={`Copy ${c.hex.toUpperCase()}`}
+                        aria-label={`Copy ${c.hex.toUpperCase()}`}
                       />
-                      <span style={{ fontSize: 7, fontWeight: 500, color: copiedColor === c.hex ? 'var(--t1)' : 'var(--t3)', letterSpacing: '0.02em', fontVariantNumeric: 'tabular-nums', textAlign: 'center', lineHeight: 1 }}>
-                        {copiedColor === c.hex ? 'COPIED' : c.hex.toUpperCase()}
+                      <span className={`swatch-hex${copiedColor === c.hex ? ' copied' : ''}`}>
+                        {copiedColor === c.hex ? 'Copied' : c.hex.toUpperCase().slice(1)}
                       </span>
                     </div>
                   ))}
                 </div>
               ) : (
-                <div style={{ height: 24, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <span style={{ fontSize: 9, color: 'var(--t3)' }}>—</span>
-                </div>
+                <div className="empty-note">Colors appear once an image is loaded.</div>
               )}
             </div>
-          </div>
+          </section>
 
-          {/* ── B&W Toggle ── */}
-          <div className="card">
-            <div className="card-inner" style={{ padding: '8px 14px' }}>
-              <button
-                className={`ic-btn${showBW ? ' on' : ''}`}
-                style={{ width: '100%', justifyContent: 'center', gap: 6 }}
-                onClick={() => setShowBW(v => !v)}
-                title="Monochrome">
-                <Ic.bw/>
-              </button>
-            </div>
-          </div>
-
-          {/* ── Blur ── */}
-          <div className="card">
-            <div className="card-inner" style={{ padding: '8px 14px' }}>
-              <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
-                <div style={{ ...dragInputWrapStyle, opacity: showBlur ? 1 : 0.45 }}
-                     onMouseDown={dragBlur.onMouseDown}>
-                  <Ic.blurGauss/>
-                  <input className="no-spin" type="number" value={blurAmount} min={1}
-                    onChange={e => setBlurAmount(parseInt(e.target.value) || 1)}
-                    style={{ flex: 1, width: 0, border: 'none', background: 'transparent', fontSize: 10, fontWeight: 500,
-                             color: 'var(--t1)', textAlign: 'right', outline: 'none', padding: 0, cursor: 'ew-resize' }}
-                  />
-                  <span style={{ color: 'var(--t2)' }}>°</span>
-                </div>
-                <button
-                  className={`ic-btn${showBlur ? ' on' : ''}`}
-                  onClick={() => setShowBlur(!showBlur)}
-                  title="On/Off">
-                  {showBlur ? <Ic.eyeOn/> : <Ic.eyeOff/>}
-                </button>
-              </div>
-            </div>
-          </div>
-
-          {/* ── Link ── */}
-          <div className="card">
-            <div className="card-inner" style={{ padding: '8px 14px' }}>
-              <a
-                href="https://x.com/Purukichi3"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="ic-btn"
-                style={{ display: 'flex', width: '100%', justifyContent: 'center', textDecoration: 'none', fontSize: 12, letterSpacing: '0.06em' }}>
-                {'> ⇀ <'}
-              </a>
-            </div>
-          </div>
-        </div>
-
-        {/* ── Right column ── */}
-        <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 10 }}>
-
-          {/* ── Preview ── */}
-          <div className="card">
+          {/* Adjustments */}
+          <section className="card">
             <div className="card-inner">
               <div className="card-head">
-                <div style={{ display: 'flex', alignItems: 'center', gap: 5, color: 'var(--t3)' }}>
-                  <Ic.image/>
+                <div className="sec-title">Adjustments</div>
+              </div>
+              <div className="adj-row">
+                <div className="adj-icon"><Ic.bw/></div>
+                <span className="adj-label">Monochrome</span>
+                <button className={`switch${showBW ? ' on' : ''}`} role="switch" aria-checked={showBW} aria-label="Monochrome"
+                  onClick={() => setShowBW(v => !v)}/>
+              </div>
+              <div className="adj-row" style={{ flexWrap: 'wrap' }}>
+                <div className="adj-icon"><Ic.blurGauss/></div>
+                <span className="adj-label">Gaussian Blur</span>
+                <button className={`switch${showBlur ? ' on' : ''}`} role="switch" aria-checked={showBlur} aria-label="Gaussian blur"
+                  onClick={() => setShowBlur(!showBlur)}/>
+                <div className="adj-slider" style={{ width: '100%' }}>
+                  <input className="range" type="range" min={1} max={BLUR_MAX} value={Math.min(blurAmount, BLUR_MAX)}
+                    disabled={!showBlur}
+                    style={{ ['--p' as string]: `${((Math.min(blurAmount, BLUR_MAX) - 1) / (BLUR_MAX - 1)) * 100}%` }}
+                    onChange={e => setBlurAmount(parseInt(e.target.value) || 1)}
+                    aria-label="Blur radius"/>
+                  <span className="adj-value">{blurAmount}px</span>
                 </div>
-                <div style={{ display: 'flex', gap: 5, alignItems: 'center' }}>
+              </div>
+            </div>
+          </section>
+
+        </aside>
+
+        {/* ── Main ── */}
+        <main className="main">
+
+          {/* Preview */}
+          <section className="card">
+            <div className="card-inner">
+              <div className="card-head">
+                <div>
+                  <div className="sec-title">Preview</div>
+                  <div className="sec-sub">{width || '—'} × {height || '—'} px{tpl ? ` · ${tpl}` : ''}</div>
+                </div>
+                <div className="toolbar">
+                  <input ref={fileRef} type="file" accept="image/*" style={{ display: 'none' }}
+                    onChange={e => loadFile(e.target.files?.[0])}/>
                   {showImg && imgSrc && (
-                    <button className="ic-btn danger" onClick={clearImage} title="Remove"><Ic.trash/></button>
+                    <button className="ic-btn danger" onClick={clearImage} title="Remove image" aria-label="Remove image"><Ic.trash/></button>
                   )}
-                  <button className={`ic-btn${showSafe ? ' on' : ''}`} onClick={() => setShowSafe(v => !v)} title="Safe Area"><Ic.safe/></button>
-                  {showImg && (
-                    <>
-                      <input ref={fileRef} type="file" accept="image/*" style={{ display: 'none' }}
-                        onChange={e => loadFile(e.target.files?.[0])}/>
-                      <button className="ic-btn" onClick={() => fileRef.current?.click()} title="Put your photo"><Ic.upload/></button>
-                    </>
-                  )}
-                  <button className={`ic-btn${showImg ? ' on' : ''}`} onClick={() => setShowImg(v => !v)} title="On/Off">
+                  <button className="ic-btn" onClick={() => { setShowImg(true); fileRef.current?.click(); }} title="Choose image" aria-label="Choose image"><Ic.upload/></button>
+                  <button className={`ic-btn${showSafe ? ' on' : ''}`} onClick={() => setShowSafe(v => !v)} title="Safe area" aria-label="Safe area"><Ic.safe/></button>
+                  <button className={`ic-btn${showImg ? ' on' : ''}`} onClick={() => setShowImg(v => !v)} title="Show image" aria-label="Show image">
                     {showImg ? <Ic.eyeOn/> : <Ic.eyeOff/>}
                   </button>
-                  <div style={{ width: 1, height: 14, background: 'var(--border)', margin: '0 1px' }}/>
+                  <div className="tb-sep"/>
                   <div style={{ position: 'relative' }}>
-                    <button className="ic-btn"
+                    <button className="btn-primary"
                       onClick={e => { e.stopPropagation(); setShowFmtMenu(v => !v); }}>
-                      <Ic.download/>
+                      <Ic.download/> Export
                     </button>
                     {showFmtMenu && (
-                      <div style={{ position: 'absolute', right: 0, top: 'calc(100% + 4px)', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--rs)', zIndex: 20, overflow: 'hidden', minWidth: 64 }}>
+                      <div className="menu">
                         {(['jpg', 'png'] as const).map(fmt => (
-                          <button key={fmt}
-                            style={{ display: 'block', width: '100%', padding: '7px 12px', fontSize: 10, fontWeight: 500, letterSpacing: '0.06em', background: 'transparent', border: 'none', color: 'var(--t1)', cursor: 'pointer', textAlign: 'left' }}
-                            onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg)')}
-                            onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
-                            onClick={() => { exportImg(fmt); setShowFmtMenu(false); }}>
+                          <button key={fmt} onClick={() => { exportImg(fmt); setShowFmtMenu(false); }}>
                             {fmt.toUpperCase()}
+                            <span>{width}×{height}</span>
                           </button>
                         ))}
                       </div>
@@ -745,224 +718,210 @@ export default function App() {
                 </div>
               </div>
 
-              <div style={{ display: 'flex', gap: 14, alignItems: 'flex-start' }}>
-                <div
-                  className="preview-area"
-                  ref={pvAreaRef}
-                  onDrop={onFileDrop}
-                  onDragOver={onFileDragOver}
-                  onDragEnter={onFileDragEnter}
-                  onDragLeave={onFileDragLeave}
+              <div
+                className="preview-area"
+                ref={pvAreaRef}
+                onDrop={onFileDrop}
+                onDragOver={onFileDragOver}
+                onDragEnter={onFileDragEnter}
+                onDragLeave={onFileDragLeave}
+              >
+                {fileDrag && <div className="drop-overlay"><Ic.drop/></div>}
+                <button
+                  className="paste-btn"
+                  onClick={e => { e.stopPropagation(); pasteFromClipboard(); }}
+                  title="Or press ⌘V / Ctrl+V to paste instantly"
                 >
-                  {fileDrag && <div className="drop-overlay"><Ic.drop/></div>}
-                  <button
-                    className="paste-btn"
-                    onClick={e => { e.stopPropagation(); pasteFromClipboard(); }}
-                    title="Or press ⌘V / Ctrl+V to paste instantly"
+                  Paste from clipboard
+                  <span className="kbd">⌘V</span>
+                </button>
+
+                <div className="pv-wrap" ref={pvWrapRef} style={{ width: pvW, height: pvH }}>
+                  <div
+                    className={`pv-canvas${showImg && imgSrc ? ' has-img' : ''}${!imgSrc ? ' empty' : ''}${panning ? ' panning' : ''}`}
+                    onMouseDown={onCanvasMouseDown}
+                    onClick={() => { if (!imgSrc) { setShowImg(true); fileRef.current?.click(); } }}
                   >
-                    paste
-                    <span className="kbd">⌘V</span>
-                  </button>
-
-                  <div className="pv-wrap" ref={pvWrapRef} style={{ width: pvW, height: pvH }}>
-                    <div
-                      className={`pv-canvas${showImg && imgSrc ? ' has-img' : ''}${showImg && !imgSrc ? ' empty' : ''}${panning ? ' panning' : ''}`}
-                      style={{ position: 'absolute', inset: 0 }}
-                      onMouseDown={onCanvasMouseDown}
-                      onClick={() => { if (showImg && !imgSrc) fileRef.current?.click(); }}
-                    >
-                      {showImg && imgSrc && (
-                        <img
-                          ref={imgRef}
-                          src={imgSrc}
-                          alt=""
-                          className="pv-img"
-                          style={{
-                            pointerEvents: 'none', userSelect: 'none',
-                            maxWidth: 'none', maxHeight: 'none',
-                            filter: [showBW ? 'grayscale(1)' : '', showBlur ? `blur(${blurAmount}px)` : ''].filter(Boolean).join(' ') || 'none',
-                          }}
-                        />
-                      )}
-                      {showImg && !imgSrc && (
-                        <div className="drop-hint">
-                          <Ic.drop/>
-                          <span>drop / select</span>
-                        </div>
-                      )}
-                    </div>
-
-                    {showSafe && (
-                      <svg className="pv-safe" viewBox={`0 0 ${pvW} ${pvH}`} preserveAspectRatio="none" width={pvW} height={pvH}>
-                        {SAFE_AREAS.map(sa => {
-                          const inX = pvW * (1 - sa.pct) / 2;
-                          const inY = pvH * (1 - sa.pct) / 2;
-                          return (
-                            <g key={sa.label}>
-                              <rect
-                                x={inX} y={inY}
-                                width={pvW - inX * 2} height={pvH - inY * 2}
-                                fill="none" stroke={sa.color} strokeWidth="0.5"
-                                strokeDasharray={sa.dash}
-                              />
-                              <text x={inX + 4} y={inY + 10} fill={sa.color} fontSize="8" fontWeight="500" fontFamily="inherit">{sa.label}</text>
-                            </g>
-                          );
-                        })}
-                      </svg>
+                    {showImg && imgSrc && (
+                      <img
+                        ref={imgRef}
+                        src={imgSrc}
+                        alt=""
+                        className="pv-img"
+                        style={{
+                          maxWidth: 'none', maxHeight: 'none',
+                          filter: [showBW ? 'grayscale(1)' : '', showBlur ? `blur(${blurAmount}px)` : ''].filter(Boolean).join(' ') || 'none',
+                        }}
+                      />
                     )}
-
-                    <div className="pv-frame"></div>
-
-                    {showPickerDots && pickerData && showImg && imgSrc && imgNat.w > 0 && pickerData.map((picker, idx) => {
-                      const sc = (snapMode === 'h' ? pvH / imgNat.h : pvW / imgNat.w) * (imgZoom / 100);
-                      const sx = pvW / 2 + imgOff.x + (picker.x * imgNat.w - imgNat.w / 2) * sc;
-                      const sy = pvH / 2 + imgOff.y + (picker.y * imgNat.h - imgNat.h / 2) * sc;
-                      if (sx < -12 || sx > pvW + 12 || sy < -12 || sy > pvH + 12) return null;
-                      return (
-                        <div key={idx}
-                          style={{ position: 'absolute', left: sx, top: sy, transform: 'translate(-50%,-50%)',
-                            zIndex: 9, cursor: 'crosshair', pointerEvents: 'all', color: 'rgba(255,255,255,0.9)' }}
-                          onMouseDown={e => startPickerDrag(e, idx)}>
-                          <div style={{ position: 'absolute', bottom: 'calc(100% + 4px)', left: '50%', transform: 'translateX(-50%)',
-                            width: 18, height: 18, borderRadius: '50%', background: picker.hex,
-                            border: '2px solid rgba(255,255,255,0.95)', boxShadow: '0 2px 6px rgba(0,0,0,0.7)',
-                            pointerEvents: 'none' }}/>
-                          <Ic.crosshair/>
-                        </div>
-                      );
-                    })}
-
-                    <div className="pv-badge-r">{detR || toRatio(width, height)}</div>
+                    {!imgSrc && pvW > 180 && pvH > 120 && (
+                      <div className="drop-hint">
+                        <div className="dh-icon"><Ic.drop/></div>
+                        <div className="dh-title">Drop an image</div>
+                        <div className="dh-sub">or <b>browse</b> · paste with ⌘V</div>
+                      </div>
+                    )}
                   </div>
+
+                  {showSafe && (
+                    <svg className="pv-safe" viewBox={`0 0 ${pvW} ${pvH}`} preserveAspectRatio="none" width={pvW} height={pvH}>
+                      {SAFE_AREAS.map(sa => {
+                        const inX = pvW * (1 - sa.pct) / 2;
+                        const inY = pvH * (1 - sa.pct) / 2;
+                        return (
+                          <g key={sa.label}>
+                            <rect
+                              x={inX} y={inY}
+                              width={pvW - inX * 2} height={pvH - inY * 2}
+                              fill="none" stroke={sa.color} strokeWidth="0.75"
+                              strokeDasharray={sa.dash}
+                            />
+                            <text x={inX + 6} y={inY + 14} fill={sa.color} fontSize="10" fontWeight="500" fontFamily="inherit">{sa.label}</text>
+                          </g>
+                        );
+                      })}
+                    </svg>
+                  )}
+
+                  <div className="pv-frame"></div>
+
+                  {showPickerDots && pickerData && showImg && imgSrc && imgNat.w > 0 && pickerData.map((picker, idx) => {
+                    const sc = (snapMode === 'h' ? pvH / imgNat.h : pvW / imgNat.w) * (imgZoom / 100);
+                    const sx = pvW / 2 + imgOff.x + (picker.x * imgNat.w - imgNat.w / 2) * sc;
+                    const sy = pvH / 2 + imgOff.y + (picker.y * imgNat.h - imgNat.h / 2) * sc;
+                    if (sx < -12 || sx > pvW + 12 || sy < -12 || sy > pvH + 12) return null;
+                    return (
+                      <div key={idx}
+                        style={{ position: 'absolute', left: sx, top: sy, transform: 'translate(-50%,-50%)',
+                          zIndex: 9, cursor: 'crosshair', pointerEvents: 'all', color: 'rgba(255,255,255,0.95)',
+                          filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.6))' }}
+                        onMouseDown={e => startPickerDrag(e, idx)}>
+                        <div style={{ position: 'absolute', bottom: 'calc(100% + 4px)', left: '50%', transform: 'translateX(-50%)',
+                          width: 20, height: 20, borderRadius: '50%', background: picker.hex,
+                          border: '2.5px solid #fff', boxShadow: '0 2px 8px rgba(0,0,0,0.35)',
+                          pointerEvents: 'none' }}/>
+                        <Ic.crosshair/>
+                      </div>
+                    );
+                  })}
+
+                  <div className="pv-badge-r">{detR || toRatio(width, height)}</div>
                 </div>
               </div>
 
-              {/* bottom bar */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 10, flexWrap: 'wrap' }}>
-                {natRatio && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 11, color: 'var(--t2)', fontVariantNumeric: 'tabular-nums' }}>
-                    <span style={{ fontWeight: 500, color: 'var(--t1)' }}>{natRatio}</span>
-                    <span>{imgNat.w}×{imgNat.h}</span>
-                    <button
-                      onClick={() => {
-                        setWidth(imgNat.w); setHeight(imgNat.h); setTpl(null); resetZoom();
-                        const r = imgNat.w / imgNat.h;
-                        let best: Ratio | null = null, bestD = 9999;
-                        for (const ar of RATIOS) { const d = Math.abs(r - ar.w / ar.h); if (d < bestD) { bestD = d; best = ar; } }
-                        if (best) setRatio(best);
-                      }}
-                      style={{ fontSize: 9, fontWeight: 500, color: 'var(--t2)', background: 'transparent', border: '1px solid var(--border)', borderRadius: 'var(--rs)', padding: '2px 7px', cursor: 'pointer' }}
-                      title="Reset Position"
-                    >↩</button>
+              {/* footer */}
+              <div className="pv-foot">
+                {natRatio ? (
+                  <div className="meta">
+                    <span className="meta-label">Original</span>
+                    <strong>{natRatio}</strong>
+                    <span>{imgNat.w} × {imgNat.h}</span>
+                    <button className="link-btn" onClick={resetToNative} title="Use original size and reset position">Use original</button>
                   </div>
+                ) : (
+                  <div className="meta"><span className="meta-label">Drag to reposition · drag picker dots to sample colors</span></div>
                 )}
                 {showImg && imgSrc && (
-                  <div style={{ display: 'flex', gap: 6, marginLeft: 'auto', alignItems: 'center' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 2,
-                                 fontSize: 10, fontWeight: 500, lineHeight: 1,
-                                 border: '1px solid var(--border)', borderRadius: 'var(--rs)',
-                                 padding: '4px 8px', background: 'transparent', cursor: 'ew-resize',
-                                 transition: 'border-color 0.12s, color 0.12s' }}
-                         onMouseDown={e => {
-                           if (e.altKey) { e.preventDefault(); resetZoom(); return; }
-                           dragZoom.onMouseDown(e);
-                         }}>
-                      <input className="no-spin" type="number" value={imgZoom} min={10} max={1000}
-                        onChange={e => { setImgZoom(parseInt(e.target.value) || 100); setImgOff({ x: 0, y: 0 }); }}
-                        style={{ width: 28, border: 'none', background: 'transparent', fontSize: 10, fontWeight: 500,
-                                 color: 'var(--t1)', textAlign: 'right', outline: 'none', padding: 0, cursor: 'ew-resize' }}
-                      />
-                      <span style={{ color: 'var(--t2)' }}>%</span>
+                  <div style={{ display: 'flex', gap: 8, marginLeft: 'auto', alignItems: 'center' }}>
+                    <div className="seg">
+                      <button className={snapMode === 'h' ? 'on' : ''} title="Fit height" aria-label="Fit height"
+                        onClick={() => { setSnapMode('h'); resetZoom(); }}><Ic.snapH/></button>
+                      <button className={snapMode === 'v' ? 'on' : ''} title="Fit width" aria-label="Fit width"
+                        onClick={() => { setSnapMode('v'); resetZoom(); }}><Ic.snapV/></button>
                     </div>
-                    {imgZoom !== 100 && (
-                      <button className="zoom-action-btn" title="Reset Zoom" onClick={resetZoom}>×</button>
-                    )}
-                    <button className="zoom-action-btn" title="Snap⇕"
-                      style={{ borderColor: snapMode === 'h' ? 'var(--t1)' : 'var(--border)', color: snapMode === 'h' ? 'var(--t1)' : 'var(--t3)' }}
-                      onClick={() => { setSnapMode('h'); resetZoom(); }}>
-                      <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round">
-                        <line x1="1" y1="2" x2="11" y2="2"/><line x1="1" y1="10" x2="11" y2="10"/>
-                      </svg>
-                    </button>
-                    <button className="zoom-action-btn" title="Snap⇔"
-                      style={{ borderColor: snapMode === 'v' ? 'var(--t1)' : 'var(--border)', color: snapMode === 'v' ? 'var(--t1)' : 'var(--t3)' }}
-                      onClick={() => { setSnapMode('v'); resetZoom(); }}>
-                      <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round">
-                        <line x1="2" y1="1" x2="2" y2="11"/><line x1="10" y1="1" x2="10" y2="11"/>
-                      </svg>
-                    </button>
+                    <div className="seg">
+                      <div className="seg-input" title="Drag to zoom · Alt+click to reset"
+                        onMouseDown={e => {
+                          if (e.altKey) { e.preventDefault(); resetZoom(); return; }
+                          dragZoom.onMouseDown(e);
+                        }}>
+                        <input className="no-spin" type="number" value={imgZoom} min={10} max={1000} aria-label="Zoom"
+                          onChange={e => { setImgZoom(parseInt(e.target.value) || 100); setImgOff({ x: 0, y: 0 }); }}/>
+                        <span>%</span>
+                      </div>
+                      {imgZoom !== 100 && (
+                        <button title="Reset zoom" aria-label="Reset zoom" onClick={resetZoom}>Reset</button>
+                      )}
+                    </div>
                   </div>
                 )}
               </div>
             </div>
-          </div>
+          </section>
 
-          {/* ── Pixel input ── */}
-          <div className="card">
-            <div className="card-inner" style={{ padding: '12px 16px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <div className="input-row" style={{ flex: 1 }}>
-                  <div className="input-grp drag-input-wrap">
-                    <div className="input-icon"><Ic.width/></div>
-                    <input type="number" value={width || ''} placeholder="1920"
-                      onChange={e => handleW(e.target.value)}
-                      {...dragW}
-                    />
-                  </div>
-                  <button className={`lock-btn${linked ? ' locked' : ''}`}
-                    title={linked ? 'Aspect ratio locked' : 'Aspect ratio free'}
-                    onClick={() => setLinked(l => !l)}>
-                    {linked ? <Ic.lock/> : <Ic.unlock/>}
-                  </button>
-                  <div className="input-grp drag-input-wrap">
-                    <div className="input-icon"><Ic.height/></div>
-                    <input type="number" value={height || ''} placeholder="1080"
-                      onChange={e => handleH(e.target.value)}
-                      {...dragH}
-                    />
-                  </div>
-                </div>
+          {/* Dimensions */}
+          <section className="card">
+            <div className="card-inner">
+              <div className="card-head">
+                <div className="sec-title">Dimensions</div>
+                <span className="sec-sub">Drag a field horizontally to adjust</span>
+              </div>
+              <div className="input-row">
+                <label className="dim-field drag-input-wrap">
+                  <span className="dim-label">W</span>
+                  <input type="number" value={width || ''} placeholder="1920"
+                    onChange={e => handleW(e.target.value)}
+                    {...dragW}
+                  />
+                  <span className="dim-unit">px</span>
+                </label>
+                <button className={`lock-btn${linked ? ' locked' : ''}`}
+                  title={linked ? 'Aspect ratio locked' : 'Aspect ratio free'}
+                  aria-label={linked ? 'Unlock aspect ratio' : 'Lock aspect ratio'}
+                  onClick={() => setLinked(l => !l)}>
+                  {linked ? <Ic.lock/> : <Ic.unlock/>}
+                </button>
+                <label className="dim-field drag-input-wrap">
+                  <span className="dim-label">H</span>
+                  <input type="number" value={height || ''} placeholder="1080"
+                    onChange={e => handleH(e.target.value)}
+                    {...dragH}
+                  />
+                  <span className="dim-unit">px</span>
+                </label>
               </div>
             </div>
-          </div>
+          </section>
 
-          {/* ── Presets ── */}
-          <details className="card">
-            <summary style={{ padding: '10px 14px', fontSize: 10, fontWeight: 500, color: 'var(--t3)', letterSpacing: '0.05em', cursor: 'pointer', listStyle: 'none', display: 'flex', alignItems: 'center', gap: 6 }}>
-              <span style={{ flex: 1 }}>PRESETS</span>
+          {/* Presets */}
+          <details className="card presets">
+            <summary>
+              <span className="chev"><Ic.chevron/></span>
+              <span className="sec-title" style={{ flex: 1 }}>Presets</span>
+              <span className="sec-sub">{TEMPLATES.length} sizes</span>
             </summary>
-            <div style={{ borderTop: '1px solid var(--border)', padding: '8px 10px 4px' }}>
-              <div style={{ display: 'flex', gap: 4, marginBottom: 6, flexWrap: 'wrap' }}>
-                {cats.map(c => {
-                  const Icon = CAT_ICONS[c];
-                  return (
-                    <button key={c} className={`cat-tab${cat === c ? ' active' : ''}`}
-                      onClick={() => setCat(c)}>
-                      <Icon/>
-                    </button>
-                  );
-                })}
+            <div className="presets-body">
+              <div className="cat-row">
+                <div className="seg">
+                  {cats.map(c => {
+                    const Icon = CAT_ICONS[c];
+                    return (
+                      <button key={c} className={cat === c ? 'on' : ''} onClick={() => setCat(c)}>
+                        <Icon/>{CAT_LABELS[c]}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 2 }}>
+              <div className="tpl-grid">
                 {filtTpls.map(t2 => {
                   const CatIcon = CAT_ICONS[t2.cat];
                   return (
-                    <div key={t2.name} className={`tpl-item${tpl === t2.name ? ' active' : ''}`} onClick={() => applyTpl(t2)}>
-                      <div className="tpl-left">
+                    <button key={t2.name} className={`tpl-item${tpl === t2.name ? ' active' : ''}`} onClick={() => applyTpl(t2)}>
+                      <span className="tpl-left">
                         <CatIcon/>
                         <span className="tpl-name">{t2.name}</span>
-                      </div>
-                      <span className="tpl-size">{t2.w}×{t2.h}</span>
-                    </div>
+                      </span>
+                      <span className="tpl-size">{t2.w} × {t2.h}</span>
+                    </button>
                   );
                 })}
               </div>
             </div>
           </details>
-
-        </div>
+        </main>
       </div>
+      <div className="foot">PXL — Everything runs locally in your browser.</div>
     </div>
   );
 }

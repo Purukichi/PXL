@@ -14,12 +14,12 @@ export function RatioChip({ ar, active, onClick }: Props) {
   if (rh > maxH) { rh = maxH; rw = rh * arR; }
   rw = Math.max(rw, 2); rh = Math.max(rh, 2);
   return (
-    <button className={`ratio-chip${active ? ' active' : ''}`} onClick={onClick}>
+    <button className={`ratio-chip${active ? ' active' : ''}`} onClick={onClick} aria-pressed={active}>
       <svg width={cW} height={cH} viewBox={`0 0 ${cW} ${cH}`} style={{ display: 'block' }}>
         <rect
           x={(cW - rw) / 2} y={(cH - rh) / 2} width={rw} height={rh}
-          fill={active ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.05)'}
-          stroke="currentColor" strokeWidth="1.4" rx="1"
+          fill="currentColor" fillOpacity={active ? 0.18 : 0.08}
+          stroke="currentColor" strokeWidth="1.3" rx="1.5"
         />
       </svg>
       <span className="rl">{ar.label}</span>
