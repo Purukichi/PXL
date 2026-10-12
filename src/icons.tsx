@@ -1,39 +1,52 @@
-// Inline SVG icons. Each function returns a JSX element.
+import type { ReactNode } from 'react';
+
+// Icons are drawn on a 24×24 grid and rendered at 16px by default (≈1.33px stroke),
+// with round caps/joins and no detail finer than ~2 grid units so they stay legible small.
+type IconProps = { size?: number };
+const icon = (paths: ReactNode, defaultSize = 16) =>
+  ({ size = defaultSize }: IconProps = {}) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={{ display: 'block', flexShrink: 0 }}>
+      {paths}
+    </svg>
+  );
+
 export const Ic = {
-  width:   () => <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5"><line x1="0" y1="6" x2="12" y2="6"/><polyline points="3,3 0,6 3,9"/><polyline points="9,3 12,6 9,9"/></svg>,
-  height:  () => <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5"><line x1="6" y1="0" x2="6" y2="12"/><polyline points="3,3 6,0 9,3"/><polyline points="3,9 6,12 9,9"/></svg>,
-  lock:    () => <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.4"><rect x="2" y="5.5" width="8" height="6" rx="1.2"/><path d="M3.5 5.5V4A2.5 2.5 0 0 1 8.5 4v1.5"/></svg>,
-  unlock:  () => <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.4"><rect x="2" y="5.5" width="8" height="6" rx="1.2"/><path d="M3.5 5.5V4A2.5 2.5 0 0 1 8.5 4"/></svg>,
-  image:   () => <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.4"><rect x="1" y="2" width="12" height="10" rx="1.5"/><circle cx="4.5" cy="5.5" r="1"/><polyline points="1,10 4,7 6.5,9.5 9,7.5 13,11"/></svg>,
-  eyeOn:   () => <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.4"><path d="M1 7s2.5-4 6-4 6 4 6 4-2.5 4-6 4-6-4-6-4z"/><circle cx="7" cy="7" r="1.8"/></svg>,
-  eyeOff:  () => <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.4"><line x1="2" y1="2" x2="12" y2="12"/><path d="M5.5 4.2A5.3 5.3 0 0 1 7 4c3.5 0 6 3 6 3s-.8 1.3-2.2 2.3"/><path d="M3.5 5.3C2.3 6.1 1 7 1 7s2.5 3 6 3c.8 0 1.5-.15 2.2-.4"/></svg>,
-  upload:  () => <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" strokeWidth="1.4"><polyline points="3,5 6.5,1.5 10,5"/><line x1="6.5" y1="1.5" x2="6.5" y2="9"/><path d="M2 10.5h9"/></svg>,
-  drop:    () => <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><polyline points="8,11 12,7 16,11"/><line x1="12" y1="7" x2="12" y2="16"/></svg>,
-  safe:    () => <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.4"><rect x="1" y="1" width="12" height="12" rx="1"/><rect x="3" y="3" width="8" height="8" rx="0.5" strokeDasharray="2 1"/></svg>,
-  moon:    () => <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" strokeWidth="1.4"><path d="M10.5 7.5A5 5 0 0 1 5.5 2.5a5 5 0 1 0 5 5z"/></svg>,
-  sun:     () => <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" strokeWidth="1.4"><circle cx="6.5" cy="6.5" r="2.5"/><line x1="6.5" y1="1" x2="6.5" y2="2.5"/><line x1="6.5" y1="10.5" x2="6.5" y2="12"/><line x1="1" y1="6.5" x2="2.5" y2="6.5"/><line x1="10.5" y1="6.5" x2="12" y2="6.5"/><line x1="2.9" y1="2.9" x2="3.9" y2="3.9"/><line x1="9.1" y1="9.1" x2="10.1" y2="10.1"/><line x1="9.1" y1="2.9" x2="10.1" y2="3.9"/><line x1="2.9" y1="9.1" x2="3.9" y2="10.1"/></svg>,
-  trash:   () => <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" strokeWidth="1.4"><polyline points="2,3 11,3"/><path d="M4 3V2h5v1"/><rect x="3" y="3" width="7" height="8" rx="1"/><line x1="5" y1="5.5" x2="5" y2="9"/><line x1="8" y1="5.5" x2="8" y2="9"/></svg>,
-  rotate:  () => <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" strokeWidth="1.4"><path d="M2 4.5A4.5 4.5 0 0 1 10.5 6.5"/><polyline points="8.5,2 10.5,4.5 8,5.5"/><path d="M11 8.5A4.5 4.5 0 0 1 2.5 6.5"/><polyline points="4.5,11 2.5,8.5 5,7.5"/></svg>,
-  bw:         () => <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" strokeWidth="1.3"><circle cx="6.5" cy="6.5" r="5"/><path d="M6.5 1.5 A5 5 0 0 1 6.5 11.5Z" fill="currentColor" stroke="none"/></svg>,
-  blurGauss:  () => <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" strokeWidth="1.4"><circle cx="6.5" cy="6.5" r="1.5" fill="currentColor" stroke="none"/><circle cx="6.5" cy="6.5" r="3.2" strokeOpacity="0.55"/><circle cx="6.5" cy="6.5" r="5.2" strokeOpacity="0.25"/></svg>,
-  crosshair:  () => <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.4"><line x1="7" y1="1" x2="7" y2="5.2"/><line x1="7" y1="8.8" x2="7" y2="13"/><line x1="1" y1="7" x2="5.2" y2="7"/><line x1="8.8" y1="7" x2="13" y2="7"/><circle cx="7" cy="7" r="2.3"/></svg>,
-  dice:       () => <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" strokeWidth="1.3"><rect x="1" y="1" width="11" height="11" rx="2"/><circle cx="4" cy="4" r="1" fill="currentColor" stroke="none"/><circle cx="9" cy="4" r="1" fill="currentColor" stroke="none"/><circle cx="6.5" cy="6.5" r="1" fill="currentColor" stroke="none"/><circle cx="4" cy="9" r="1" fill="currentColor" stroke="none"/><circle cx="9" cy="9" r="1" fill="currentColor" stroke="none"/></svg>,
-  refresh:    () => <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" strokeWidth="1.4"><path d="M11 6.5A4.5 4.5 0 1 1 9.1 2.9"/><polyline points="9,1 9.1,3.5 11.6,3.2"/></svg>,
-  download:   () => <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"><line x1="6.5" y1="1.5" x2="6.5" y2="9"/><polyline points="4,7 6.5,9.5 9,7"/><line x1="1.5" y1="11.5" x2="11.5" y2="11.5"/></svg>,
-  chevron:    () => <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><polyline points="4.5,2.5 8,6 4.5,9.5"/></svg>,
-  chevronDown:() => <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="2,3.5 5,6.5 8,3.5"/></svg>,
-  snapH:      () => <svg width="13" height="13" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"><line x1="1" y1="2" x2="11" y2="2"/><line x1="1" y1="10" x2="11" y2="10"/><line x1="6" y1="4" x2="6" y2="8" strokeOpacity="0.5"/></svg>,
-  snapV:      () => <svg width="13" height="13" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"><line x1="2" y1="1" x2="2" y2="11"/><line x1="10" y1="1" x2="10" y2="11"/><line x1="4" y1="6" x2="8" y2="6" strokeOpacity="0.5"/></svg>,
-  catAll:     () => <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" strokeWidth="1.4"><rect x="1" y="1" width="4.5" height="4.5" rx="1"/><rect x="7.5" y="1" width="4.5" height="4.5" rx="1"/><rect x="1" y="7.5" width="4.5" height="4.5" rx="1"/><rect x="7.5" y="7.5" width="4.5" height="4.5" rx="1"/></svg>,
-  catDisplay: () => <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" strokeWidth="1.4"><rect x="1" y="2" width="11" height="7" rx="1.5"/><line x1="4.5" y1="11" x2="8.5" y2="11"/><line x1="6.5" y1="9" x2="6.5" y2="11"/></svg>,
-  catVideo:   () => <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinejoin="round"><rect x="1" y="3" width="7.5" height="7" rx="1.5"/><polyline points="8.5,5 12,3.5 12,9.5 8.5,8"/></svg>,
-  catSocial:  () => <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" strokeWidth="1.4"><path d="M1 3a1 1 0 0 1 1-1h9a1 1 0 0 1 1 1v5a1 1 0 0 1-1 1H4l-3 2V3z"/></svg>,
-  catMobile:  () => <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" strokeWidth="1.4"><rect x="4" y="1" width="5" height="11" rx="1.5"/><line x1="5.5" y1="10" x2="7.5" y2="10"/></svg>,
-  catPrint:   () => <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" strokeWidth="1.4"><rect x="3" y="1" width="7" height="5" rx="1"/><path d="M3 6H2A.5.5 0 0 0 1.5 6.5v4a.5.5 0 0 0 .5.5H4V9h5v2h2a.5.5 0 0 0 .5-.5v-4A.5.5 0 0 0 11 6h-1"/><line x1="4.5" y1="8" x2="8.5" y2="8"/><line x1="4.5" y1="10" x2="8.5" y2="10"/></svg>,
-  catMusic:   () => <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" strokeWidth="1.4"><path d="M5 9.5V2.5l6-1.5v7"/><circle cx="3.5" cy="9.5" r="1.5"/><circle cx="9.5" cy="8" r="1.5"/></svg>,
+  lock:     icon(<><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></>),
+  unlock:   icon(<><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 7.7-1.5"/></>),
+  eyeOn:    icon(<><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></>),
+  eyeOff:   icon(<><path d="M9.9 5.2A10 10 0 0 1 12 5c6.4 0 10 7 10 7a17 17 0 0 1-2.6 3.4"/><path d="M6.6 6.6C3.6 8.5 2 12 2 12s3.6 7 10 7a9.7 9.7 0 0 0 5.4-1.6"/><path d="M3 3l18 18"/></>),
+  upload:   icon(<><path d="M12 15V3"/><path d="M7 8l5-5 5 5"/><path d="M3 15v4a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-4"/></>),
+  download: icon(<><path d="M12 3v12"/><path d="M7 10l5 5 5-5"/><path d="M3 15v4a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-4"/></>),
+  drop:     icon(<><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="9" cy="9" r="2"/><path d="M21 15l-5-5L5 21"/></>, 24),
+  safe:     icon(<><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M7 8h2M15 8h2M7 16h2M15 16h2M6 9v1M18 9v1M6 14v1M18 14v1"/></>),
+  guides:   icon(<><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18M15 3v18M3 9h18M3 15h18"/></>),
+  moon:     icon(<path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/>),
+  sun:      icon(<><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></>),
+  trash:    icon(<><path d="M4 7h16"/><path d="M10 7V4h4v3"/><path d="M6 7l1 13a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1l1-13"/></>),
+  rotate:   icon(<><rect x="2" y="11" width="13" height="10" rx="2"/><path d="M10 4h3a5 5 0 0 1 5 5v4"/><path d="M15 10l3 3 3-3"/></>),
+  refresh:  icon(<><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></>),
+  shuffle:  icon(<><path d="M16 3h5v5"/><path d="M4 20L21 3"/><path d="M21 16v5h-5"/><path d="M15 15l6 6"/><path d="M4 4l5 5"/></>),
+  bw:       icon(<><circle cx="12" cy="12" r="9"/><path d="M12 3a9 9 0 0 1 0 18z" fill="currentColor"/></>),
+  blur:     icon(<><circle cx="12" cy="12" r="2.5" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="6" strokeOpacity="0.55"/><circle cx="12" cy="12" r="9.5" strokeOpacity="0.25"/></>),
+  crosshair:icon(<><circle cx="12" cy="12" r="4"/><path d="M12 2v5M12 17v5M2 12h5M17 12h5"/></>, 18),
+  chevron:  icon(<path d="M9 6l6 6-6 6"/>, 14),
+  chevronDown: icon(<path d="M6 9l6 6 6-6"/>, 12),
+  fitH:     icon(<><path d="M4 3h16M4 21h16"/><path d="M12 7v10"/><path d="M9 9.5l3-3 3 3M9 14.5l3 3 3-3"/></>),
+  fitW:     icon(<><path d="M3 4v16M21 4v16"/><path d="M7 12h10"/><path d="M9.5 9l-3 3 3 3M14.5 9l3 3-3 3"/></>),
+  copy:     icon(<><rect x="8" y="8" width="13" height="13" rx="2"/><path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3"/></>),
+  check:    icon(<path d="M5 12.5l4.5 4.5L19 7.5"/>),
+  keyboard: icon(<><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M6 9h.01M10 9h.01M14 9h.01M18 9h.01M6 13h.01M18 13h.01M9 15h6"/></>),
+  catAll:     icon(<><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></>),
+  catDisplay: icon(<><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></>),
+  catVideo:   icon(<><rect x="2" y="6" width="14" height="12" rx="2"/><path d="M16 10l6-3v10l-6-3"/></>),
+  catSocial:  icon(<path d="M21 12a8.5 8.5 0 0 1-12.4 7.6L3 21l1.4-5.4A8.5 8.5 0 1 1 21 12z"/>),
+  catMobile:  icon(<><rect x="6" y="2" width="12" height="20" rx="2.5"/><path d="M11 18h2"/></>),
+  catPrint:   icon(<><path d="M6 9V3h12v6"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="7" rx="1"/></>),
+  catMusic:   icon(<><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></>),
 };
 
-export const CAT_ICONS: Record<string, () => JSX.Element> = {
+export const CAT_ICONS: Record<string, (p?: IconProps) => JSX.Element> = {
   all: Ic.catAll, display: Ic.catDisplay, video: Ic.catVideo,
   social: Ic.catSocial, mobile: Ic.catMobile, print: Ic.catPrint,
   music: Ic.catMusic,

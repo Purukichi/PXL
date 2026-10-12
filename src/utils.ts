@@ -187,3 +187,72 @@ export function extractPaletteWithPositions(
   }
   return selected.map(c => ({ hex: c.hex, x: c.x, y: c.y }));
 }
+
+// ── Composition guides ─────────────────────────────────────────────────────
+export type GuideMode = 'none' | 'thirds' | 'golden' | 'center' | 'grid';
+export const GUIDE_MODES: { id: GuideMode; label: string }[] = [
+  { id: 'none',   label: 'None' },
+  { id: 'thirds', label: 'Rule of thirds' },
+  { id: 'golden', label: 'Golden ratio' },
+  { id: 'center', label: 'Center & diagonals' },
+  { id: 'grid',   label: 'Square grid' },
+];
+
+// Returns line segments [x1, y1, x2, y2] for a w×h frame.
+export function guideLines(mode: GuideMode, w: number, h: number): [number, number, number, number][] {
+  const v = (x: number): [number, number, number, number] => [x, 0, x, h];
+  const hz = (y: number): [number, number, number, number] => [0, y, w, y];
+  switch (mode) {
+    case 'thirds': return [v(w / 3), v(w * 2 / 3), hz(h / 3), hz(h * 2 / 3)];
+    case 'golden': {
+      const g = 0.381966;
+      return [v(w * g), v(w * (1 - g)), hz(h * g), hz(h * (1 - g))];
+    }
+    case 'center': return [v(w / 2), hz(h / 2), [0, 0, w, h], [w, 0, 0, h]];
+    case 'grid': {
+      const cell = Math.min(w, h) / 6;
+      const out: [number, number, number, number][] = [];
+      for (let x = w / 2 % cell; x < w; x += cell) if (x > 0.5) out.push(v(x));
+      for (let y = h / 2 % cell; y < h; y += cell) if (y > 0.5) out.push(hz(y));
+      return out;
+    }
+    default: return [];
+  }
+}
+
+// ── Color formats ──────────────────────────────────────────────────────────
+export type ColorFmt = 'HEX' | 'RGB' | 'HSL';
+export function formatColor(hex: string, fmt: ColorFmt): string {
+  const n = parseInt(hex.replace('#', ''), 16);
+  const r = (n >> 16) & 255, g = (n >> 8) & 255, b = n & 255;
+  if (fmt === 'HEX') return hex.toUpperCase();
+  if (fmt === 'RGB') return `rgb(${r}, ${g}, ${b})`;
+  const rn = r / 255, gn = g / 255, bn = b / 255;
+  const max = Math.max(rn, gn, bn), min = Math.min(rn, gn, bn), l = (max + min) / 2;
+  let hDeg = 0, s = 0;
+  if (max !== min) {
+    const d = max - min;
+    s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+    hDeg = max === rn ? (gn - bn) / d + (gn < bn ? 6 : 0) : max === gn ? (bn - rn) / d + 2 : (rn - gn) / d + 4;
+    hDeg *= 60;
+  }
+  return `hsl(${Math.round(hDeg)}, ${Math.round(s * 100)}%, ${Math.round(l * 100)}%)`;
+}
+
+// ── High-quality downscaling ───────────────────────────────────────────────
+// A single large drawImage downscale aliases badly; halve in steps until the
+// source is within 2× of the target, then let the final draw do the rest.
+export function stepDownSource(img: HTMLImageElement, targetW: number, targetH: number): CanvasImageSource {
+  let src: CanvasImageSource = img;
+  let w = img.naturalWidth, h = img.naturalHeight;
+  while (w / 2 >= targetW && h / 2 >= targetH && w > 2 && h > 2) {
+    w = Math.round(w / 2); h = Math.round(h / 2);
+    const c = document.createElement('canvas');
+    c.width = w; c.height = h;
+    const x = c.getContext('2d')!;
+    x.imageSmoothingEnabled = true; x.imageSmoothingQuality = 'high';
+    x.drawImage(src, 0, 0, w, h);
+    src = c;
+  }
+  return src;
+}
