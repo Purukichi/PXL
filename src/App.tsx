@@ -526,7 +526,7 @@ export default function App() {
       {/* ── Global nav ── */}
       <nav className="topbar">
         <div className="topbar-inner">
-          <div className="logo">PXL <small>Pixel finder for designers</small></div>
+          <div className="logo">PXL</div>
           <div className="nav-spacer"/>
           <a className="nav-link" href="https://x.com/Purukichi3" target="_blank" rel="noopener noreferrer">{'> ⇀ <'}</a>
           <button className="ic-btn" onClick={() => setDark(d => !d)} title={dark ? 'Light mode' : 'Dark mode'} aria-label="Toggle theme">
