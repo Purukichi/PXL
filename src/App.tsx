@@ -490,20 +490,34 @@ export default function App() {
     }, MIME[fmt], q);
   };
 
-  const copyText = async (text: string) => {
-    try { await navigator.clipboard.writeText(text); return true; } catch { return false; }
+  // Clipboard API is missing on insecure origins (e.g. http://LAN-IP) and can be
+  // rejected by some browsers, so fall back to a hidden textarea + execCommand.
+  const copyText = async (text: string): Promise<boolean> => {
+    try {
+      if (navigator.clipboard?.writeText) { await navigator.clipboard.writeText(text); return true; }
+    } catch { /* fall through to legacy copy */ }
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.setAttribute('readonly', '');
+    ta.style.position = 'fixed'; ta.style.top = '0'; ta.style.left = '0'; ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.select(); ta.setSelectionRange(0, text.length);
+    let ok = false;
+    try { ok = document.execCommand('copy'); } catch { ok = false; }
+    document.body.removeChild(ta);
+    return ok;
   };
-  const copyColor = (hex: string) => {
-    copyText(formatColor(hex, colorFmt));
+  const copyColor = async (hex: string) => {
+    if (!(await copyText(formatColor(hex, colorFmt)))) return;
     setCopiedColor(hex); setTimeout(() => setCopiedColor(null), 1500);
   };
-  const copyAllColors = () => {
+  const copyAllColors = async () => {
     if (!pickerData) return;
-    copyText(pickerData.map(c => formatColor(c.hex, colorFmt)).join('\n'));
+    if (!(await copyText(pickerData.map(c => formatColor(c.hex, colorFmt)).join('\n')))) return;
     setCopiedColor('__all'); setTimeout(() => setCopiedColor(null), 1500);
   };
-  const copySize = () => {
-    copyText(`${width}×${height}`);
+  const copySize = async () => {
+    if (!(await copyText(`${width}×${height}`))) return;
     setSizeCopied(true); setTimeout(() => setSizeCopied(false), 1500);
   };
   const cycleGuide = () => {
@@ -774,7 +788,7 @@ export default function App() {
                         aria-label={`Copy ${formatColor(c.hex, colorFmt)}`}
                       />
                       <span className={`swatch-hex${copiedColor === c.hex ? ' copied' : ''}`}>
-                        {copiedColor === c.hex ? 'Copied' : c.hex.toUpperCase().slice(1)}
+                        {copiedColor === c.hex ? 'Copied' : c.hex.toUpperCase()}
                       </span>
                     </div>
                   ))}
