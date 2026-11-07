@@ -220,25 +220,6 @@ export function guideLines(mode: GuideMode, w: number, h: number): [number, numb
   }
 }
 
-// ── Color formats ──────────────────────────────────────────────────────────
-export type ColorFmt = 'HEX' | 'RGB' | 'HSL';
-export function formatColor(hex: string, fmt: ColorFmt): string {
-  const n = parseInt(hex.replace('#', ''), 16);
-  const r = (n >> 16) & 255, g = (n >> 8) & 255, b = n & 255;
-  if (fmt === 'HEX') return hex.toUpperCase();
-  if (fmt === 'RGB') return `rgb(${r}, ${g}, ${b})`;
-  const rn = r / 255, gn = g / 255, bn = b / 255;
-  const max = Math.max(rn, gn, bn), min = Math.min(rn, gn, bn), l = (max + min) / 2;
-  let hDeg = 0, s = 0;
-  if (max !== min) {
-    const d = max - min;
-    s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
-    hDeg = max === rn ? (gn - bn) / d + (gn < bn ? 6 : 0) : max === gn ? (bn - rn) / d + 2 : (rn - gn) / d + 4;
-    hDeg *= 60;
-  }
-  return `hsl(${Math.round(hDeg)}, ${Math.round(s * 100)}%, ${Math.round(l * 100)}%)`;
-}
-
 // ── High-quality downscaling ───────────────────────────────────────────────
 // A single large drawImage downscale aliases badly; halve in steps until the
 // source is within 2× of the target, then let the final draw do the rest.

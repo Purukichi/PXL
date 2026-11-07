@@ -5,14 +5,14 @@ import { RATIOS, TEMPLATES, SAFE_AREAS } from './data';
 import {
   computeScale, getBodyZoom, toRatio, detectRatio,
   computeHistogram, sampleColor, extractPaletteWithPositions,
-  GUIDE_MODES, guideLines, formatColor, stepDownSource,
+  GUIDE_MODES, guideLines, stepDownSource,
 } from './utils';
-import type { GuideMode, ColorFmt } from './utils';
+import type { GuideMode } from './utils';
 
 type ExportFmt = 'jpg' | 'png' | 'webp';
 type Prefs = {
   ratio: string; linked: boolean; width: number; height: number; dark: boolean;
-  paletteMode: PaletteMode; colorFmt: ColorFmt; guide: GuideMode;
+  paletteMode: PaletteMode; guide: GuideMode;
   exportFmt: ExportFmt; exportQuality: number; exportOverlays: boolean;
 };
 const PREFS_KEY = 'pxl:prefs:v1';
@@ -84,7 +84,6 @@ export default function App() {
   };
 
   const [paletteMode, setPaletteMode] = useState<PaletteMode>(prefs.paletteMode ?? 'VIVID');
-  const [colorFmt,    setColorFmt]    = useState<ColorFmt>(prefs.colorFmt ?? 'HEX');
   const [guide,       setGuide]       = useState<GuideMode>(prefs.guide ?? 'none');
   const [exportFmt,     setExportFmt]     = useState<ExportFmt>(prefs.exportFmt ?? 'jpg');
   const [exportQuality, setExportQuality] = useState<number>(prefs.exportQuality ?? 100);
@@ -142,9 +141,9 @@ export default function App() {
 
   // Remember preferences between visits
   useEffect(() => {
-    const p: Prefs = { ratio: ratio.label, linked, width, height, dark, paletteMode, colorFmt, guide, exportFmt, exportQuality, exportOverlays };
+    const p: Prefs = { ratio: ratio.label, linked, width, height, dark, paletteMode, guide, exportFmt, exportQuality, exportOverlays };
     try { localStorage.setItem(PREFS_KEY, JSON.stringify(p)); } catch { /* storage unavailable */ }
-  }, [ratio, linked, width, height, dark, paletteMode, colorFmt, guide, exportFmt, exportQuality, exportOverlays]);
+  }, [ratio, linked, width, height, dark, paletteMode, guide, exportFmt, exportQuality, exportOverlays]);
 
   // Measure preview-area container for dynamic pvW/pvH
   useEffect(() => {
@@ -508,12 +507,12 @@ export default function App() {
     return ok;
   };
   const copyColor = async (hex: string) => {
-    if (!(await copyText(formatColor(hex, colorFmt)))) return;
+    if (!(await copyText(hex.toUpperCase()))) return;
     setCopiedColor(hex); setTimeout(() => setCopiedColor(null), 1500);
   };
   const copyAllColors = async () => {
     if (!pickerData) return;
-    if (!(await copyText(pickerData.map(c => formatColor(c.hex, colorFmt)).join('\n')))) return;
+    if (!(await copyText(pickerData.map(c => c.hex.toUpperCase()).join('\n')))) return;
     setCopiedColor('__all'); setTimeout(() => setCopiedColor(null), 1500);
   };
   const copySize = async () => {
@@ -753,7 +752,7 @@ export default function App() {
                 <div className="toolbar">
                   <button className="ic-btn" onClick={resetPalette} disabled={!pickerData} title="Reset picks" aria-label="Reset picks"><Ic.refresh/></button>
                   <button className="ic-btn" onClick={rerollPalette} disabled={!imgSrc} title="Shuffle" aria-label="Shuffle"><Ic.shuffle/></button>
-                  <button className={`ic-btn${copiedColor === '__all' ? ' on' : ''}`} onClick={copyAllColors} disabled={!pickerData} title={`Copy all as ${colorFmt}`} aria-label="Copy all colors">
+                  <button className={`ic-btn${copiedColor === '__all' ? ' on' : ''}`} onClick={copyAllColors} disabled={!pickerData} title="Copy all" aria-label="Copy all colors">
                     {copiedColor === '__all' ? <Ic.check/> : <Ic.copy/>}
                   </button>
                   <button className={`ic-btn${showPickerDots ? ' on' : ''}`} onClick={() => setShowPickerDots(v => !v)} title="Show pickers" aria-label="Show pickers">
@@ -770,11 +769,6 @@ export default function App() {
                   </select>
                   <Ic.chevronDown/>
                 </div>
-                <div className="seg" role="group" aria-label="Copy format">
-                  {(['HEX', 'RGB', 'HSL'] as ColorFmt[]).map(f => (
-                    <button key={f} className={colorFmt === f ? 'on' : ''} onClick={() => setColorFmt(f)}>{f}</button>
-                  ))}
-                </div>
               </div>
               {pickerData ? (
                 <div className="swatches">
@@ -784,8 +778,8 @@ export default function App() {
                         className="swatch-chip"
                         onClick={() => copyColor(c.hex)}
                         style={{ background: c.hex }}
-                        title={`Copy ${formatColor(c.hex, colorFmt)}`}
-                        aria-label={`Copy ${formatColor(c.hex, colorFmt)}`}
+                        title={`Copy ${c.hex.toUpperCase()}`}
+                        aria-label={`Copy ${c.hex.toUpperCase()}`}
                       />
                       <span className={`swatch-hex${copiedColor === c.hex ? ' copied' : ''}`}>
                         {copiedColor === c.hex ? 'Copied' : c.hex.toUpperCase()}
